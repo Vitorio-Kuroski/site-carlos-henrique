@@ -1,0 +1,15 @@
+// Configuração do Cloudflare Workers (para quando o site sair do GitHub Pages).
+// Publica a pasta public/ como site estático; o src/worker.js só roda na página inicial (escolhe o idioma).
+{
+  "name": "carlos-henrique",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/", "/index.html"]
+  },
+  // Endereço de teste carlos-henrique.<conta>.workers.dev
+  "workers_dev": true
+}
