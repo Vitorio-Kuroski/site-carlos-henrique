@@ -1,4 +1,5 @@
-/* Cores e fontes da página de links do Carlos: verde, creme e dourado */
+/* Cores e fontes da página de links do Carlos: verde, creme e dourado.
+   Sempre no tema claro, mesmo com o celular no modo escuro. */
 :root {
   --fundo: #F6F2E9;
   --papel: #EFE9DC;
@@ -13,19 +14,7 @@
   --ouro-texto: #7A5F1E;
   --titulo: 'Fraunces', Georgia, 'Times New Roman', serif;
   --corpo: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fundo: #0B2A20;
-    --papel: #0F3226;
-    --superficie: #12392C;
-    --linha: #2A5546;
-    --texto: #F2EDE2;
-    --suave: #B9C6BF;
-    --verde: #E2C77F;
-    --verde-fundo: #08221A;
-    --ouro-texto: #E2C77F;
-  }
+  color-scheme: light;
 }
 
 * { margin: 0; box-sizing: border-box; }
