@@ -1,22 +1,49 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-idioma="pt">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Carlos Henrique, Part-Qualified Accountant em Dublin: dinheiro, impostos e carreira em contabilidade na Irlanda, explicados em português.">
     <title>Carlos Henrique | Contabilidade na Irlanda em português</title>
     <meta name="theme-color" content="#0F3D2E">
+    <link rel="canonical" href="https://vitorio-kuroski.github.io/site-carlos-henrique/">
+    <!-- idiomas -->
+    <link rel="alternate" hreflang="pt-BR" href="https://vitorio-kuroski.github.io/site-carlos-henrique/">
+    <link rel="alternate" hreflang="en" href="https://vitorio-kuroski.github.io/site-carlos-henrique/en/">
+    <link rel="alternate" hreflang="x-default" href="https://vitorio-kuroski.github.io/site-carlos-henrique/en/">
+    <!-- /idiomas -->
 
     <meta property="og:type" content="website">
     <meta property="og:locale" content="pt_BR">
     <meta property="og:title" content="Carlos Henrique | Contabilidade na Irlanda em português">
     <meta property="og:description" content="Dinheiro, impostos e carreira em contabilidade na Irlanda, explicados em português.">
-    <meta property="og:image" content="img/carlos.jpg">
+    <meta property="og:site_name" content="Carlos Henrique">
+    <meta property="og:url" content="https://vitorio-kuroski.github.io/site-carlos-henrique/">
+    <meta property="og:image" content="https://vitorio-kuroski.github.io/site-carlos-henrique/og-imagem.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="icon" href="img/carlos.jpg">
+    <!-- Dados para o Google -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Carlos Henrique",
+        "jobTitle": "Part-Qualified Accountant",
+        "description": "Dinheiro, impostos e carreira em contabilidade na Irlanda, explicados em português.",
+        "url": "https://vitorio-kuroski.github.io/site-carlos-henrique/",
+        "image": "https://vitorio-kuroski.github.io/site-carlos-henrique/img/carlos.jpg",
+        "address": { "@type": "PostalAddress", "addressLocality": "Dublin", "addressCountry": "IE" },
+        "sameAs": ["https://www.instagram.com/henrique.accountant/", "https://www.linkedin.com/in/carlos-henrique-de-souza-ba167914a"]
+    }
+    </script>
+
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <a class="pular" href="#conteudo">Pular para o conteúdo</a>
@@ -31,7 +58,14 @@
                 <a href="#cursos">Cursos</a>
                 <a href="#parcerias">Parcerias</a>
             </nav>
-            <a href="https://tally.so/r/2EqxZj" target="_blank" rel="noopener" class="botao botao--pequeno">Declaração</a>
+            <div class="topo__acoes">
+                <!-- Idioma: os links são relativos ("./" e "en/"); o gerador ajusta nas outras versões -->
+                <nav class="idiomas" aria-label="Idioma">
+                    <a href="./" hreflang="pt-BR" lang="pt-BR" data-idioma="pt">PT</a>
+                    <a href="en/" hreflang="en" lang="en" data-idioma="en">EN</a>
+                </nav>
+                <a href="https://tally.so/r/2EqxZj" target="_blank" rel="noopener" class="botao botao--pequeno">Declaração</a>
+            </div>
         </div>
     </header>
 
@@ -179,6 +213,15 @@
     </footer>
 
     <script>
+        // Idioma: marca o atual e guarda a escolha (no Cloudflare, o Worker respeita o cookie)
+        const idiomaAtual = document.documentElement.dataset.idioma;
+        document.querySelectorAll(".idiomas a").forEach((a) => {
+            if (a.dataset.idioma === idiomaAtual) a.setAttribute("aria-current", "true");
+            a.addEventListener("click", () => {
+                document.cookie = `idioma=${a.dataset.idioma}; path=/; max-age=31536000; samesite=lax`;
+            });
+        });
+
         // Copia o e-mail de parcerias e avisa quem não consegue abrir o app de e-mail
         document.getElementById("copiar").addEventListener("click", async () => {
             const aviso = document.getElementById("copiado");

@@ -1,0 +1,10 @@
+services:
+  site:
+    build: .
+    container_name: carlos-henrique
+    ports:
+      - "8080:80"
+    volumes:
+      # edições em public/ aparecem sem rebuild
+      - ./public:/usr/share/nginx/html:ro
+    restart: unless-stopped
