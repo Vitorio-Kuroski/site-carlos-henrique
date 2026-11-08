@@ -7,7 +7,9 @@ No ar em https://henriqueaccountant.com (Cloudflare Workers, conectado ao GitHub
 
 ## Idiomas
 
-- `public/index.html` é a página em português e a fonte de tudo: edite os textos aqui.
+- As páginas em português são a fonte: `public/index.html` (início) e `public/declaracao/index.html`
+  (declaração de imposto). Edite os textos nelas. Página nova: crie `public/<pasta>/index.html` e ponha a pasta
+  em `PAGINAS` (`tools/gerar_idiomas.py`).
 - `traducoes/en.json` tem a tradução ("texto em português" -> "texto em inglês").
 - Depois de mudar a página ou a tradução, gere a versão em inglês:
 
@@ -15,7 +17,7 @@ No ar em https://henriqueaccountant.com (Cloudflare Workers, conectado ao GitHub
 python tools/gerar_idiomas.py
 ```
 
-O script grava `public/en/index.html`, os links entre idiomas (hreflang) e o `sitemap.xml`,
+O script grava a versão em inglês de cada página em `public/en/`, os links entre idiomas (hreflang) e o `sitemap.xml`,
 e avisa quais textos ficaram sem tradução (`--listar` só mostra a lista).
 
 Os caminhos na página são relativos (`style.css`, `img/carlos.jpg`, `en/`), para funcionar tanto no GitHub Pages
