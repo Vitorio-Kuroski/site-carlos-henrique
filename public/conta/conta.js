@@ -40,6 +40,7 @@ async function areaDoAluno() {
     const aluno = await resposta.json();
     document.getElementById("nome").textContent = aluno.nome.split(" ")[0];
     document.getElementById("email").textContent = aluno.email;
+    document.getElementById("admin").hidden = !aluno.admin;
     document.getElementById("sair").addEventListener("click", async () => {
         await fetch("/api/conta/sair", { method: "POST" });
         location.href = "/";

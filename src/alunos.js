@@ -4,8 +4,10 @@
 //   POST /api/conta/cadastro  { nome, email, senha }  cria a conta e já entra
 //   POST /api/conta/entrar    { email, senha }        entra
 //   POST /api/conta/sair                              sai (apaga a sessão)
-//   GET  /api/conta/eu                                dados de quem está logado, ou 401
+//   GET  /api/conta/eu                                dados de quem está logado (e se é administrador), ou 401
 //
+// Administradores: os e-mails do segredo ADMIN_EMAILS (painel do Cloudflare, separados por vírgula).
+// Ficam fora do código porque o repositório é público.
 // Senhas: PBKDF2-SHA256 com sal aleatório; nunca são guardadas em texto.
 // Sessão: token aleatório num cookie HttpOnly; no banco fica só o hash do token.
 // Tentativas de login: 5 erros em 15 minutos bloqueiam aquele e-mail por 15 minutos.
@@ -40,7 +42,7 @@ const TABELAS = [
 ];
 let tabelasProntas = false;
 
-async function garantirTabelas(db) {
+export async function garantirTabelas(db) {
     if (tabelasProntas) return;
     await db.batch(TABELAS.map((sql) => db.prepare(sql)));
     tabelasProntas = true;
@@ -50,7 +52,7 @@ const agora = () => Math.floor(Date.now() / 1000);
 const paraHex = (bytes) => [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
 const deHex = (hex) => new Uint8Array(hex.match(/../g).map((h) => parseInt(h, 16)));
 
-function json(dados, status = 200, cabecalhos = {}) {
+export function json(dados, status = 200, cabecalhos = {}) {
     return new Response(JSON.stringify(dados), {
         status,
         headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...cabecalhos },
@@ -103,6 +105,12 @@ export async function alunoLogado(request, env) {
     return env.DB.prepare(
         `SELECT a.id, a.nome, a.email FROM sessoes s JOIN alunos a ON a.id = s.aluno_id
          WHERE s.token_hash = ? AND s.expira_em > ?`).bind(await sha256(token), agora()).first();
+}
+
+// O e-mail está na lista do segredo ADMIN_EMAILS?
+export function ehAdmin(env, email) {
+    const lista = String(env.ADMIN_EMAILS || "").toLowerCase().split(/[,;\s]+/).filter(Boolean);
+    return Boolean(email) && lista.includes(String(email).toLowerCase());
 }
 
 async function lerDados(request) {
@@ -189,7 +197,8 @@ export async function rotasConta(request, env) {
     if (pathname === "/api/conta/sair" && metodo === "POST") return sair(request, env);
     if (pathname === "/api/conta/eu" && metodo === "GET") {
         const aluno = await alunoLogado(request, env);
-        return aluno ? json({ nome: aluno.nome, email: aluno.email }) : json({ erro: "Não está logado." }, 401);
+        return aluno ? json({ nome: aluno.nome, email: aluno.email, admin: ehAdmin(env, aluno.email) })
+            : json({ erro: "Não está logado." }, 401);
     }
     return json({ erro: "Não encontrado." }, 404);
 }

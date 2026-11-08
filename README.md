@@ -52,6 +52,11 @@ Etapa 1 da plataforma de cursos: alunos criam conta e entram no site.
   bloqueiam o e-mail por 15 minutos.
 - Ver os alunos: painel do Cloudflare > Storage & Databases > D1 > carlos-henrique-alunos > Console,
   com `SELECT id, nome, email, criado_em FROM alunos;`.
+- **Administradores:** quem entra com um e-mail do segredo `ADMIN_EMAILS` vê o botão "Painel do administrador"
+  em `/conta/` e acessa `/admin/` (número de alunos, busca e apagar conta). O segredo fica no painel do Cloudflare
+  (Workers & Pages > carlos-henrique > Settings > Variables and Secrets, tipo **Secret**), com os e-mails separados
+  por vírgula; fica fora do código porque o repositório é público. Para tirar alguém, apague o e-mail da lista.
+  Administrador não pode ser apagado pelo painel. No PC, coloque `ADMIN_EMAILS=...` no arquivo `.dev.vars`.
 - Ainda não tem "esqueci minha senha": precisa de um serviço que mande e-mail para os alunos (próxima etapa).
 
 ## O que trocar

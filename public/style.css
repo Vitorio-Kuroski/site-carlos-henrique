@@ -227,3 +227,42 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .conta__cursos { margin: 2rem 0; padding: 1.4rem; border-radius: 16px; background: var(--fundo); border: 1px dashed var(--linha); }
 .conta__cursos h2 { font-size: 1.4rem; }
 .conta__cursos p { margin-top: .4rem; color: var(--suave); }
+
+/* Painel do administrador */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.conta__admin { margin-top: -0.6rem; margin-bottom: 1.6rem; }
+.admin { padding-top: 48px; padding-bottom: 96px; }
+.admin__topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 1rem; }
+.admin__topo h1 { margin-top: 1rem; font-size: clamp(2rem, 6vw, 3rem); }
+.admin__topo h1 em { font-style: italic; color: var(--ouro-texto); }
+.admin__numeros { margin-top: 2.4rem; display: grid; gap: 12px; }
+@media (min-width: 700px) { .admin__numeros { grid-template-columns: repeat(3, 1fr); } }
+.admin__numeros div { padding: 1.4rem 1.6rem; border-radius: 18px; background: var(--superficie); border: 1px solid var(--linha); }
+.admin__numeros strong { display: block; font-family: var(--titulo); font-weight: 500; font-size: 2.4rem; line-height: 1; }
+.admin__numeros span { display: block; margin-top: .5rem; font-size: .88rem; color: var(--suave); }
+.admin__lista { margin-top: 2.4rem; }
+.admin__busca { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.admin__busca h2 { font-size: 1.8rem; }
+.admin__busca .campo { flex: 1; max-width: 360px; min-width: 220px; }
+.admin__tabela { border-radius: 18px; border: 1px solid var(--linha); background: var(--superficie); overflow: hidden; }
+.admin__tabela table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.admin__tabela th { padding: .9rem 1.1rem; text-align: left; font-size: .75rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); border-bottom: 1px solid var(--linha); }
+.admin__tabela td { padding: .9rem 1.1rem; border-bottom: 1px solid var(--linha); overflow-wrap: anywhere; }
+.admin__tabela tr:last-child td { border-bottom: 0; }
+.admin__apagar { padding: .4rem .8rem; border-radius: 8px; border: 1px solid #E5B9A6; background: none; color: #8A3517; font: 500 .85rem var(--corpo); cursor: pointer; }
+.admin__apagar:hover { background: #FBEDE6; }
+.admin__selo { font-size: .78rem; font-weight: 600; color: var(--ouro-texto); }
+.admin__vazio { margin-top: 1rem; color: var(--suave); }
+/* No celular, cada aluno vira um cartão */
+@media (max-width: 640px) {
+  .admin__tabela thead { display: none; }
+  .admin__tabela tr { display: block; padding: .9rem 1.1rem; border-bottom: 1px solid var(--linha); }
+  .admin__tabela tr:last-child { border-bottom: 0; }
+  .admin__tabela td { display: block; padding: .15rem 0; border: 0; }
+  .admin__tabela td[data-rotulo="Nome"] { font-weight: 600; }
+  .admin__tabela td[data-rotulo="E-mail"], .admin__tabela td[data-rotulo="Cadastro"] { color: var(--suave); font-size: .88rem; }
+  .admin__tabela td:last-child { margin-top: .6rem; }
+}
+
+/* Elementos com "hidden" ficam escondidos mesmo com display definido */
+[hidden] { display: none !important; }
