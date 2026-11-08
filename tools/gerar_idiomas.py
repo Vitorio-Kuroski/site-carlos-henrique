@@ -69,7 +69,7 @@ def partes_html(html):
 
 
 # Atributos com texto visível ou lido por leitores de tela
-ATRIBUTOS = r'(aria-label|alt|placeholder)="([^"]*)"'
+ATRIBUTOS = r'(aria-label|alt|placeholder|title)="([^"]*)"'
 METAS = r'(<meta (?:name|property)="(?:description|og:title|og:description)" content=")([^"]*)(")'
 # Caminhos relativos (não começam com protocolo, "/", "#", "mailto:" ou "data:")
 RELATIVOS = r'((?:href|src)=")(?![a-z]+:|/|#)([^"]*)(")'
