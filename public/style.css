@@ -283,3 +283,9 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
   .topo__conta { width: 34px; height: 34px; }
   .botao--pequeno { padding: .5rem .7rem; }
 }
+
+/* Rodapé: quatro links com ícone cabem melhor no celular */
+.rodape nav { gap: .8rem 1.3rem; }
+@media (max-width: 600px) {
+  .rodape nav { display: grid; grid-template-columns: repeat(2, max-content); gap: .9rem 2rem; }
+}
