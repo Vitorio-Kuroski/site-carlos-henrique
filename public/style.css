@@ -266,3 +266,23 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 
 /* Elementos com "hidden" ficam escondidos mesmo com display definido */
 [hidden] { display: none !important; }
+
+/* Ícone da área do aluno no topo */
+.topo__conta { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--linha); color: var(--texto); transition: border-color .2s, color .2s; }
+.topo__conta:hover { border-color: var(--ouro); color: var(--ouro-texto); }
+.topo__conta .icone { width: 20px; height: 20px; }
+@media (max-width: 400px) { .topo__acoes { gap: .4rem; } .topo__conta { width: 36px; height: 36px; } }
+@media (max-width: 480px) {
+  .topo__linha { gap: .5rem; }
+  .marca { font-size: 1rem; }
+  .idiomas a { padding: .3rem .3rem; }
+  .botao--pequeno { padding: .5rem .85rem; font-size: .8rem; }
+}
+@media (max-width: 380px) {
+  .topo .caixa { padding: 0 14px; }
+  .topo__conta { width: 34px; height: 34px; }
+  .botao--pequeno { padding: .5rem .7rem; }
+}
+@media (max-width: 340px) {
+  .topo__acoes .botao--pequeno { display: none; }
+}
