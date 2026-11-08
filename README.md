@@ -40,6 +40,20 @@ e `python tools/gerar_blog.py`. O blog é só em português.
 2. Abra o repositório no painel e, em **Collaborators**, convide o Carlos pelo e-mail.
    Ele entra pelo link do e-mail, sem conta no GitHub, e só vê o blog.
 
+## Área do aluno (cadastro e login)
+
+Etapa 1 da plataforma de cursos: alunos criam conta e entram no site.
+
+- Páginas: `/conta/cadastro/`, `/conta/entrar/` e `/conta/` (área do aluno), só em português e fora do Google (`noindex`).
+- O Worker responde em `/api/conta/*` (`src/alunos.js`) e guarda os dados no banco **D1** `carlos-henrique-alunos`
+  (binding `DB` em `wrangler.jsonc`). O Cloudflare cria o banco na primeira publicação, e o Worker cria as tabelas
+  sozinho na primeira requisição.
+- Senhas guardadas com PBKDF2 (nunca em texto); sessão de 30 dias em cookie HttpOnly; 5 senhas erradas em 15 minutos
+  bloqueiam o e-mail por 15 minutos.
+- Ver os alunos: painel do Cloudflare > Storage & Databases > D1 > carlos-henrique-alunos > Console,
+  com `SELECT id, nome, email, criado_em FROM alunos;`.
+- Ainda não tem "esqueci minha senha": precisa de um serviço que mande e-mail para os alunos (próxima etapa).
+
 ## O que trocar
 
 | O quê | Onde |

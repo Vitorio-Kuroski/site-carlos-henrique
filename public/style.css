@@ -205,3 +205,25 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .rodape nav { flex-wrap: wrap; }
 .lista-links__nome { display: inline-flex; align-items: center; gap: .8rem; }
 .icone--grande { width: 1.6rem; height: 1.6rem; color: var(--ouro-texto); stroke-width: 1.4; }
+
+/* Área do aluno: cadastro, login e conta */
+.conta-pagina { min-height: 100vh; display: flex; flex-direction: column; }
+.conta { flex: 1; display: flex; align-items: center; justify-content: center; padding-top: 48px; padding-bottom: 72px; }
+.conta__cartao { width: 100%; max-width: 440px; padding: 2.4rem 2rem; border-radius: 24px; background: var(--superficie); border: 1px solid var(--linha); }
+.conta__cartao--largo { max-width: 640px; }
+.conta__cartao h1 { margin-top: 1rem; font-size: clamp(2rem, 6vw, 2.6rem); }
+.conta__cartao h1 em { font-style: italic; color: var(--ouro-texto); }
+.conta__form { margin-top: 1.8rem; display: grid; gap: 1.1rem; }
+.campo { display: grid; gap: .4rem; font-size: .9rem; font-weight: 500; }
+.campo input { width: 100%; padding: .85rem 1rem; border-radius: 12px; border: 1px solid var(--linha); background: var(--fundo); font: 400 1rem var(--corpo); color: var(--texto); }
+.campo input:focus { outline: 2px solid var(--ouro); outline-offset: 1px; border-color: transparent; }
+.conta__form .botao { justify-content: center; margin-top: .4rem; }
+.conta__form .botao:disabled { opacity: .6; cursor: wait; }
+.conta__nota { font-size: .82rem; color: var(--suave); }
+.conta__erro { padding: .8rem 1rem; border-radius: 12px; background: #FBEDE6; color: #8A3517; font-size: .9rem; }
+.conta__troca { margin-top: 1.4rem; font-size: .92rem; color: var(--suave); }
+.conta__troca a { color: var(--ouro-texto); font-weight: 600; }
+.conta__email { margin-top: .4rem; color: var(--suave); }
+.conta__cursos { margin: 2rem 0; padding: 1.4rem; border-radius: 16px; background: var(--fundo); border: 1px dashed var(--linha); }
+.conta__cursos h2 { font-size: 1.4rem; }
+.conta__cursos p { margin-top: .4rem; color: var(--suave); }
