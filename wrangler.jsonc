@@ -1,5 +1,6 @@
-// Configuração do Cloudflare Workers (para quando o site sair do GitHub Pages).
-// Publica a pasta public/ como site estático; o src/worker.js só roda na página inicial (escolhe o idioma).
+// Configuração do Cloudflare Workers.
+// Publica a pasta public/ como site estático; o src/worker.js roda na página inicial (escolhe o idioma)
+// e nas rotas /api/ (cadastro e login de alunos).
 {
   "name": "carlos-henrique",
   "main": "src/worker.js",
@@ -8,8 +9,11 @@
     "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/", "/index.html"]
+    "run_worker_first": ["/", "/index.html", "/api/*"]
   },
+  // Banco de dados dos alunos. Sem "database_id": o Cloudflare cria o banco sozinho na primeira publicação.
+  // As tabelas são criadas pelo próprio Worker na primeira requisição (src/alunos.js).
+  "d1_databases": [{ "binding": "DB", "database_name": "carlos-henrique-alunos" }],
   // Endereço de teste carlos-henrique.<conta>.workers.dev
   "workers_dev": true
 }
