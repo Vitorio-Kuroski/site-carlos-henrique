@@ -197,3 +197,11 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .post__texto blockquote { padding-left: 1.4rem; border-left: 2px solid var(--ouro); font-family: var(--titulo); font-style: italic; font-size: 1.3rem; color: var(--texto); }
 .post__texto table { width: 100%; border-collapse: collapse; font-size: .95rem; }
 .post__texto th, .post__texto td { padding: .6rem .8rem; border-bottom: 1px solid var(--linha); text-align: left; }
+
+/* Ícones das redes sociais */
+.icone { width: 1.15em; height: 1.15em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.icone__ponto { fill: currentColor; stroke: none; }
+.rede { display: inline-flex; align-items: center; gap: .5rem; }
+.rodape nav { flex-wrap: wrap; }
+.lista-links__nome { display: inline-flex; align-items: center; gap: .8rem; }
+.icone--grande { width: 1.6rem; height: 1.6rem; color: var(--ouro-texto); stroke-width: 1.4; }
