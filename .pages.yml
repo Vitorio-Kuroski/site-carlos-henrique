@@ -1,0 +1,51 @@
+# Painel do blog (Pages CMS: app.pagescms.org). Cada post vira um arquivo em content/blog/;
+# o .github/workflows/blog.yml gera as páginas do blog e o Cloudflare publica.
+media:
+  input: public/img/blog
+  output: /img/blog
+
+content:
+  - name: blog
+    label: Blog
+    type: collection
+    path: content/blog
+    filename:
+      template: "{year}-{month}-{day}-{primary}.md"
+      field: create
+    view:
+      fields: [title, date, draft]
+      primary: title
+      sort: [date]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: Título
+        type: string
+        required: true
+      - name: description
+        label: Resumo (aparece no Google e na lista do blog)
+        type: text
+        required: true
+      - name: date
+        label: Data
+        type: date
+        options:
+          format: yyyy-MM-dd
+      - name: image
+        label: Imagem de capa (opcional)
+        type: image
+        options:
+          extensions: [jpg, jpeg, png, webp]
+          rename: true
+      - name: draft
+        label: Rascunho (marcado = não aparece no site)
+        type: boolean
+        default: false
+      - name: body
+        label: Texto
+        type: rich-text
+        options:
+          format: markdown
+          rename: true

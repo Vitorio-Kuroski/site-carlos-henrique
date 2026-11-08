@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://henriqueaccountant.com/sitemap.xml
+Sitemap: https://henriqueaccountant.com/blog/sitemap.xml
