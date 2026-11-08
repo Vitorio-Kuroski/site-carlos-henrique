@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="only light">
+    <meta name="robots" content="noindex">
+    <title>Painel do administrador | Carlos Henrique</title>
+    <meta name="theme-color" content="#0F3D2E">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body class="conta-pagina">
+    <header class="topo">
+        <div class="caixa topo__linha">
+            <a href="../" class="marca">Carlos Henrique<span>Accountant · Dublin</span></a>
+            <a href="../blog/" class="link-seta">Blog</a>
+        </div>
+    </header>
+
+    <main class="caixa admin" hidden id="painel">
+        <div class="admin__topo">
+            <div>
+                <p class="rotulo"><span class="rotulo__linha"></span>Administração</p>
+                <h1>Painel do <em>administrador</em></h1>
+            </div>
+            <a class="link-seta" href="../conta/">← Minha conta</a>
+        </div>
+
+        <div class="admin__numeros">
+            <div><strong id="total">–</strong><span>alunos cadastrados</span></div>
+            <div><strong id="ultimos7">–</strong><span>novos nos últimos 7 dias</span></div>
+            <div><strong id="ultimos30">–</strong><span>novos nos últimos 30 dias</span></div>
+        </div>
+
+        <section class="admin__lista">
+            <div class="admin__busca">
+                <h2>Alunos</h2>
+                <label class="campo"><span class="sr-only">Buscar</span>
+                    <input id="busca" type="search" placeholder="Buscar por nome ou e-mail" maxlength="100">
+                </label>
+            </div>
+            <p class="conta__erro" id="erro" role="alert" hidden></p>
+            <div class="admin__tabela">
+                <table>
+                    <thead><tr><th>Nome</th><th>E-mail</th><th>Cadastro</th><th><span class="sr-only">Ações</span></th></tr></thead>
+                    <tbody id="alunos"></tbody>
+                </table>
+            </div>
+            <p class="admin__vazio" id="vazio" hidden>Nenhum aluno encontrado.</p>
+        </section>
+    </main>
+
+    <main class="caixa conta" hidden id="negado">
+        <div class="conta__cartao">
+            <p class="rotulo"><span class="rotulo__linha"></span>Administração</p>
+            <h1>Acesso restrito</h1>
+            <p class="conta__email">Esta página é só para administradores.</p>
+            <p class="conta__troca"><a href="../conta/">Voltar para a minha conta</a></p>
+        </div>
+    </main>
+
+    <script src="admin.js"></script>
+</body>
+</html>
