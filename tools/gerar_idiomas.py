@@ -21,7 +21,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 FONTE = RAIZ / "public" / "index.html"
 # Endereço do site. Ao mudar (Cloudflare, domínio próprio), troque aqui e nos arquivos de public/ que o citam.
-SITE = "https://vitorio-kuroski.github.io/site-carlos-henrique/"
+SITE = "https://henriqueaccountant.com/"
 # Idioma mostrado a quem não tem idioma próprio no site (x-default)
 PADRAO_FORA = "en"
 
