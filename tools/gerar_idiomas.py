@@ -1,17 +1,18 @@
 """Gera a versão em inglês do site a partir da página em português.
 
-A fonte é public/index.html (português). Cada idioma tem um arquivo em
-traducoes/<codigo>.json com os dados do idioma e a tabela "texto em português" ->
-"texto traduzido". O script grava public/<codigo>/index.html, atualiza os links
-entre idiomas (hreflang) e o sitemap.xml.
+As fontes são as páginas em português listadas em PAGINAS (public/index.html e
+public/<pasta>/index.html). Cada idioma tem um arquivo em traducoes/<codigo>.json com
+os dados do idioma e a tabela "texto em português" -> "texto traduzido". O script grava
+public/<codigo>/<pasta>/index.html, os links entre idiomas (hreflang) e o sitemap.xml.
 
 Uso:
     python tools/gerar_idiomas.py           # gera tudo
     python tools/gerar_idiomas.py --listar  # só lista os textos sem tradução
 
-Os caminhos da página são relativos ("style.css", "img/carlos.jpg", "en/"), para o site
-funcionar tanto no GitHub Pages (que fica numa subpasta) quanto num domínio próprio.
-Nas versões em subpasta, o script acrescenta "../" a eles.
+Os caminhos são relativos, para o site funcionar em qualquer endereço. Como cada idioma
+repete a mesma estrutura de pastas, os links entre páginas ("declaracao/", "../#imposto")
+valem iguais nas duas versões; só os arquivos (CSS, imagens) ganham "../" na versão em
+inglês, e o seletor PT/EN é refeito para apontar para a mesma página no outro idioma.
 """
 import json
 import re
@@ -19,7 +20,9 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-FONTE = RAIZ / "public" / "index.html"
+PUBLICO = RAIZ / "public"
+# Páginas em português: pasta dentro de public/ ("" = página inicial) -> entra no sitemap?
+PAGINAS = {"": True, "declaracao/": True}
 # Endereço do site. Ao mudar (Cloudflare, domínio próprio), troque aqui e nos arquivos de public/ que o citam.
 SITE = "https://henriqueaccountant.com/"
 # Idioma mostrado a quem não tem idioma próprio no site (x-default)
@@ -41,22 +44,22 @@ def ler_traducoes():
     return idiomas
 
 
-def url_de(codigo):
-    return SITE if codigo == "pt" else f"{SITE}{codigo}/"
+def url_de(codigo, pasta=""):
+    return f"{SITE}{pasta}" if codigo == "pt" else f"{SITE}{codigo}/{pasta}"
 
 
-def bloco_hreflang(idiomas):
+def bloco_hreflang(idiomas, pasta):
     linhas = ["    <!-- idiomas -->",
-              f'    <link rel="alternate" hreflang="pt-BR" href="{url_de("pt")}">']
+              f'    <link rel="alternate" hreflang="pt-BR" href="{url_de("pt", pasta)}">']
     for cod, dados in idiomas.items():
-        linhas.append(f'    <link rel="alternate" hreflang="{dados["idioma"]["lang"]}" href="{url_de(cod)}">')
-    linhas.append(f'    <link rel="alternate" hreflang="x-default" href="{url_de(PADRAO_FORA)}">')
+        linhas.append(f'    <link rel="alternate" hreflang="{dados["idioma"]["lang"]}" href="{url_de(cod, pasta)}">')
+    linhas.append(f'    <link rel="alternate" hreflang="x-default" href="{url_de(PADRAO_FORA, pasta)}">')
     linhas.append("    <!-- /idiomas -->")
     return "\n".join(linhas)
 
 
-def com_hreflang(html, idiomas):
-    return re.sub(r"    <!-- idiomas -->.*?<!-- /idiomas -->", lambda _: bloco_hreflang(idiomas), html, flags=re.S)
+def com_hreflang(html, idiomas, pasta):
+    return re.sub(r"    <!-- idiomas -->.*?<!-- /idiomas -->", lambda _: bloco_hreflang(idiomas, pasta), html, flags=re.S)
 
 
 def traduzivel(texto):
@@ -71,8 +74,10 @@ def partes_html(html):
 # Atributos com texto visível ou lido por leitores de tela
 ATRIBUTOS = r'(aria-label|alt|placeholder)="([^"]*)"'
 METAS = r'(<meta (?:name|property)="(?:description|og:title|og:description)" content=")([^"]*)(")'
-# Caminhos relativos (não começam com protocolo, "/", "#", "mailto:" ou "data:")
-RELATIVOS = r'((?:href|src)=")(?![a-z]+:|/|#)([^"]*)(")'
+# Arquivos com caminho relativo (CSS, imagens): ganham "../" na versão em subpasta
+ARQUIVOS = r'((?:href|src)=")(?![a-z]+:|/|#)([^"]*\.(?:css|js|png|jpe?g|webp|svg|ico))(")'
+# Links do seletor de idioma
+SELETOR = r'(<a href=")[^"]*(" hreflang="[^"]*" lang="[^"]*" data-idioma="([a-z]+)")'
 
 
 def textos_da_pagina(html):
@@ -93,7 +98,7 @@ def textos_da_pagina(html):
     return vistos
 
 
-def traduzir(html, dados):
+def traduzir(html, dados, pasta=""):
     tabela = dados["textos"]
     faltando = []
 
@@ -125,15 +130,18 @@ def traduzir(html, dados):
         parte = re.sub(r">([^<>]+)<", no_texto, parte)
         parte = re.sub(ATRIBUTOS, lambda m: f'{m.group(1)}="{tr(m.group(2))}"', parte)
         parte = re.sub(METAS, lambda m: m.group(1) + tr(m.group(2)) + m.group(3), parte)
-        parte = re.sub(RELATIVOS, lambda m: m.group(1) + ("../" if m.group(2) == "./" else "../" + m.group(2)) + m.group(3), parte)
+        parte = re.sub(ARQUIVOS, lambda m: m.group(1) + "../" + m.group(2) + m.group(3), parte)
         saida.append(parte)
     html = "".join(saida)
 
     info = dados["idioma"]
     cod = info["codigo"]
     html = html.replace('<html lang="pt-BR" data-idioma="pt"', f'<html lang="{info["lang"]}" data-idioma="{cod}"', 1)
-    html = html.replace(f'<link rel="canonical" href="{url_de("pt")}">', f'<link rel="canonical" href="{url_de(cod)}">', 1)
-    html = html.replace(f'<meta property="og:url" content="{url_de("pt")}">', f'<meta property="og:url" content="{url_de(cod)}">', 1)
+    html = html.replace(f'<link rel="canonical" href="{url_de("pt", pasta)}">', f'<link rel="canonical" href="{url_de(cod, pasta)}">', 1)
+    html = html.replace(f'<meta property="og:url" content="{url_de("pt", pasta)}">', f'<meta property="og:url" content="{url_de(cod, pasta)}">', 1)
+    # Seletor: "PT" volta para esta mesma página em português; o idioma atual aponta para si mesmo
+    volta = "../" * (1 + pasta.count("/")) + pasta
+    html = re.sub(SELETOR, lambda m: m.group(1) + (volta if m.group(3) == "pt" else "./") + m.group(2), html)
     html = html.replace('<meta property="og:locale" content="pt_BR">', f'<meta property="og:locale" content="{info["og_locale"]}">', 1)
     # Textos dentro do script (avisos do botão de copiar)
     for pt, outro in dados.get("scripts", {}).items():
@@ -143,10 +151,14 @@ def traduzir(html, dados):
 
 def gerar_sitemap(idiomas):
     todos = {"pt": "pt-BR", **{c: d["idioma"]["lang"] for c, d in idiomas.items()}}
-    alternativas = "".join(
-        f'\n    <xhtml:link rel="alternate" hreflang="{lang}" href="{url_de(c)}"/>' for c, lang in todos.items())
-    alternativas += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{url_de(PADRAO_FORA)}"/>'
-    urls = "".join(f"\n  <url>\n    <loc>{url_de(c)}</loc>{alternativas}\n  </url>" for c in todos)
+    urls = ""
+    for pasta, no_sitemap in PAGINAS.items():
+        if not no_sitemap:
+            continue
+        alternativas = "".join(
+            f'\n    <xhtml:link rel="alternate" hreflang="{lang}" href="{url_de(c, pasta)}"/>' for c, lang in todos.items())
+        alternativas += f'\n    <xhtml:link rel="alternate" hreflang="x-default" href="{url_de(PADRAO_FORA, pasta)}"/>'
+        urls += "".join(f"\n  <url>\n    <loc>{url_de(c, pasta)}</loc>{alternativas}\n  </url>" for c in todos)
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
             f"{urls}\n</urlset>\n")
@@ -154,31 +166,34 @@ def gerar_sitemap(idiomas):
 
 def main():
     idiomas = ler_traducoes()
-    fonte = FONTE.read_text(encoding="utf-8")
+    fontes = {pasta: (PUBLICO / pasta / "index.html").read_text(encoding="utf-8") for pasta in PAGINAS}
 
     if "--listar" in sys.argv:
         for cod, dados in idiomas.items():
-            falta = [t for t in textos_da_pagina(fonte) if t not in dados["textos"]]
+            falta = list(dict.fromkeys(
+                t for fonte in fontes.values() for t in textos_da_pagina(fonte) if t not in dados["textos"]))
             print(f"== {cod}: {len(falta)} sem tradução")
             for t in falta:
                 print(json.dumps(t, ensure_ascii=False))
         return
 
-    fonte = com_hreflang(fonte, idiomas)
-    FONTE.write_text(fonte, encoding="utf-8", newline="")
+    for pasta in fontes:
+        fontes[pasta] = com_hreflang(fontes[pasta], idiomas, pasta)
+        (PUBLICO / pasta / "index.html").write_text(fontes[pasta], encoding="utf-8", newline="")
     erro = False
     for cod, dados in idiomas.items():
-        html, faltando = traduzir(fonte, dados)
-        if faltando:
-            erro = True
-            print(f"[{cod}] {len(faltando)} textos sem tradução:")
-            for t in dict.fromkeys(faltando):
-                print("   ", json.dumps(t, ensure_ascii=False))
-        destino = RAIZ / "public" / cod / "index.html"
-        destino.parent.mkdir(exist_ok=True)
-        destino.write_text(html, encoding="utf-8", newline="")
-        print(f"[{cod}] {destino.relative_to(RAIZ)}")
-    (RAIZ / "public" / "sitemap.xml").write_text(gerar_sitemap(idiomas), encoding="utf-8", newline="")
+        for pasta, fonte in fontes.items():
+            html, faltando = traduzir(fonte, dados, pasta)
+            if faltando:
+                erro = True
+                print(f"[{cod}] /{pasta}: {len(faltando)} textos sem tradução:")
+                for t in dict.fromkeys(faltando):
+                    print("   ", json.dumps(t, ensure_ascii=False))
+            destino = PUBLICO / cod / pasta / "index.html"
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            destino.write_text(html, encoding="utf-8", newline="")
+            print(f"[{cod}] {destino.relative_to(RAIZ)}")
+    (PUBLICO / "sitemap.xml").write_text(gerar_sitemap(idiomas), encoding="utf-8", newline="")
     sys.exit(1 if erro else 0)
 
 

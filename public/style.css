@@ -160,3 +160,38 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
   .marca span { display: none; }
   .topo__acoes { gap: .5rem; }
 }
+
+/* Página da declaração */
+.hero--pagina { padding-bottom: 72px; }
+.hero--pagina h1 { max-width: 16ch; }
+.opcao p + p { margin-top: .9rem; }
+div.opcao:hover { background: var(--verde-fundo); }
+
+.prazos { margin-top: 48px; list-style: none; padding: 0; border-top: 1px solid var(--linha); }
+.prazos li { display: grid; gap: .4rem; padding: 1.8rem 0; border-bottom: 1px solid var(--linha); }
+@media (min-width: 760px) { .prazos li { grid-template-columns: 240px 1fr; gap: 2rem; align-items: baseline; } }
+.prazos__data { font-family: var(--titulo); font-style: italic; font-size: 1.5rem; color: var(--ouro-texto); }
+.prazos h3 { font-size: 1.4rem; }
+.prazos p { margin-top: .4rem; color: var(--suave); max-width: 40rem; }
+
+.checklist { list-style: none; padding: 0; display: grid; gap: 1rem; }
+.checklist li { position: relative; padding: 1.2rem 1.4rem 1.2rem 3.2rem; border-radius: 16px; background: var(--superficie); border: 1px solid var(--linha); color: var(--suave); }
+.checklist li::before { content: ""; position: absolute; left: 1.3rem; top: 1.5rem; width: 12px; height: 7px; border-left: 2px solid var(--ouro-texto); border-bottom: 2px solid var(--ouro-texto); transform: rotate(-45deg); }
+.checklist strong { color: var(--texto); font-weight: 600; }
+
+.passos { margin-top: 48px; list-style: none; padding: 0; display: grid; gap: 1px; background: var(--linha); border: 1px solid var(--linha); border-radius: 20px; overflow: hidden; }
+@media (min-width: 760px) { .passos { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .passos { grid-template-columns: repeat(4, 1fr); } }
+.passos li { padding: 2rem 1.8rem; background: var(--superficie); }
+.passos span { font-size: .75rem; font-weight: 600; letter-spacing: .15em; color: var(--ouro-texto); }
+.passos h3 { margin-top: 1rem; font-size: 1.45rem; }
+.passos p { margin-top: .5rem; color: var(--suave); }
+
+.aviso--claro { color: var(--suave); }
+.aviso--claro svg { stroke: var(--ouro-texto); }
+
+.fontes { margin-top: 32px; font-size: .82rem; color: var(--suave); max-width: 56rem; }
+.fontes a { color: var(--texto); }
+.mais { margin-top: 28px; }
+.link-seta--claro { color: #F2EDE2; border-bottom-color: var(--ouro-claro); }
+.link-seta--claro:hover { color: var(--ouro-claro); }
