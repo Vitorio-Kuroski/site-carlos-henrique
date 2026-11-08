@@ -283,6 +283,3 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
   .topo__conta { width: 34px; height: 34px; }
   .botao--pequeno { padding: .5rem .7rem; }
 }
-@media (max-width: 340px) {
-  .topo__acoes .botao--pequeno { display: none; }
-}
