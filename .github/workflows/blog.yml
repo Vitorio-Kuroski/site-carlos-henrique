@@ -1,0 +1,39 @@
+# Gera as páginas do blog quando um post é publicado ou alterado pelo painel (Pages CMS)
+# e salva o resultado no main; o Cloudflare publica em seguida.
+name: Gerar o blog
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "content/blog/**"
+      - "public/img/blog/**"
+      - "tools/gerar_blog.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog
+  cancel-in-progress: false
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tools/requirements.txt
+      - run: python tools/gerar_blog.py
+      - name: Salvar as páginas geradas
+        run: |
+          git add public/blog
+          if git diff --cached --quiet; then echo "Nada mudou"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Blog: atualiza as páginas geradas"
+          git pull --rebase origin main
+          git push origin HEAD:main
