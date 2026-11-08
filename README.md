@@ -3,7 +3,7 @@
 Site do Carlos Henrique, Part-Qualified Accountant em Dublin: dinheiro, impostos e carreira na Irlanda, em português.
 Estático (HTML e CSS, sem banco de dados), em português e inglês. Os arquivos do site ficam em `public/`.
 
-No ar pelo GitHub Pages: https://vitorio-kuroski.github.io/site-carlos-henrique/
+No ar em https://henriqueaccountant.com (Cloudflare Workers, conectado ao GitHub: cada envio para o `main` é publicado sozinho).
 
 ## Idiomas
 
@@ -33,13 +33,14 @@ Os caminhos na página são relativos (`style.css`, `img/carlos.jpg`, `en/`), pa
 
 ## Publicar
 
-**GitHub Pages (agora):** cada envio para o `main` é publicado sozinho pelo `.github/workflows/pages.yml`.
-Na primeira vez: Settings > Pages > Source: **GitHub Actions**.
+**Cloudflare Workers:** o repositório está conectado em Workers & Pages (configuração em `wrangler.jsonc`).
+Cada envio para o `main` é publicado em https://henriqueaccountant.com. O `src/worker.js` abre a versão em inglês
+para quem tem o navegador em outro idioma, respeitando a escolha do seletor PT/EN.
 
-**Cloudflare Workers (depois):** conecte o repositório em Workers & Pages (configuração em `wrangler.jsonc`).
-O `src/worker.js` abre a versão em inglês para quem tem o navegador em outro idioma, respeitando a escolha do seletor PT/EN.
+**GitHub Pages:** o `.github/workflows/pages.yml` também publica uma cópia em github.io. As páginas apontam
+(canonical) para o domínio próprio, então o Google indexa só o henriqueaccountant.com.
 
-Ao mudar de endereço (Cloudflare ou domínio próprio), troque o endereço antigo pelo novo em `SITE` (`tools/gerar_idiomas.py`),
+Ao mudar de endereço, troque o endereço antigo pelo novo em `SITE` (`tools/gerar_idiomas.py`),
 `public/index.html`, `public/404.html` e `public/robots.txt`, e rode o gerador.
 
 ## Rodar no Docker
