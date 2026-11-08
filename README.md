@@ -23,6 +23,25 @@ e avisa quais textos ficaram sem tradução (`--listar` só mostra a lista).
 Os caminhos na página são relativos (`style.css`, `img/carlos.jpg`, `en/`), para funcionar tanto no GitHub Pages
 (que fica na subpasta `/site-carlos-henrique/`) quanto num domínio próprio.
 
+## Blog
+
+Os posts ficam em `content/blog/` (um arquivo Markdown por post) e são escritos pelo painel do **Pages CMS**
+(https://app.pagescms.org), configurado em `.pages.yml`. Ao publicar pelo painel:
+
+1. o post é salvo em `content/blog/` (e as imagens em `public/img/blog/`);
+2. o GitHub Actions (`.github/workflows/blog.yml`) roda `tools/gerar_blog.py` e salva as páginas em `public/blog/`;
+3. o Cloudflare publica: lista em `/blog/`, cada post em `/blog/<nome-do-post>/`.
+
+Post marcado como **Rascunho** não aparece no site. Para gerar no PC: `pip install -r tools/requirements.txt`
+e `python tools/gerar_blog.py`. O blog é só em português.
+
+### Configurar o painel (uma vez)
+
+1. Entre em https://app.pagescms.org com a conta do GitHub dona do repositório e instale o app
+   **Pages CMS** só no repositório `site-carlos-henrique`.
+2. Abra o repositório no painel e, em **Collaborators**, convide o Carlos pelo e-mail.
+   Ele entra pelo link do e-mail, sem conta no GitHub, e só vê o blog.
+
 ## O que trocar
 
 | O quê | Onde |

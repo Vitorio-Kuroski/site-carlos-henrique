@@ -195,3 +195,45 @@ div.opcao:hover { background: var(--verde-fundo); }
 .mais { margin-top: 28px; }
 .link-seta--claro { color: #F2EDE2; border-bottom-color: var(--ouro-claro); }
 .link-seta--claro:hover { color: var(--ouro-claro); }
+/* Blog */
+.secao--blog { padding-top: 0; }
+.posts { display: grid; gap: 20px; }
+@media (min-width: 760px) { .posts { grid-template-columns: repeat(2, 1fr); } }
+.post-cartao { display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; background: var(--superficie); border: 1px solid var(--linha); text-decoration: none; transition: transform .2s, border-color .2s; }
+.post-cartao:hover { transform: translateY(-3px); border-color: var(--ouro); }
+.post-cartao__capa { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.post-cartao__texto { padding: 1.8rem; }
+.post-cartao__data { font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ouro-texto); }
+.post-cartao h2 { margin-top: .8rem; font-size: 1.7rem; }
+.post-cartao p:not(.post-cartao__data) { margin-top: .6rem; color: var(--suave); }
+.post-cartao .opcao__link { color: var(--ouro-texto); border-bottom-color: var(--ouro); }
+.posts__vazio { color: var(--suave); font-size: 1.1rem; }
+
+.post__cabeca { max-width: 780px; padding-top: 56px; padding-bottom: 40px; }
+@media (min-width: 900px) { .post__cabeca { padding-top: 88px; } }
+.post__cabeca .link-seta { font-size: .9rem; }
+.post__cabeca .post-cartao__data { margin-top: 2.4rem; }
+.post__cabeca h1 { margin-top: 1rem; font-size: clamp(2.2rem, 5.5vw, 3.6rem); }
+.post__cabeca .hero__lead { margin-top: 1.2rem; }
+.post__capa { margin-top: 2.4rem; width: 100%; border-radius: 20px; }
+.post__texto { max-width: 720px; padding-bottom: 96px; font-size: 1.1rem; line-height: 1.8; }
+.post__texto > * + * { margin-top: 1.3rem; }
+.post__texto h2 { margin-top: 2.8rem; font-size: clamp(1.6rem, 4vw, 2.1rem); }
+.post__texto h3 { margin-top: 2.2rem; font-size: 1.4rem; }
+.post__texto ul, .post__texto ol { padding-left: 1.3rem; }
+.post__texto li + li { margin-top: .5rem; }
+.post__texto li::marker { color: var(--ouro-texto); }
+.post__texto a { color: var(--ouro-texto); }
+.post__texto strong { font-weight: 600; }
+.post__texto img { border-radius: 16px; }
+.post__texto blockquote { padding-left: 1.4rem; border-left: 2px solid var(--ouro); font-family: var(--titulo); font-style: italic; font-size: 1.3rem; color: var(--texto); }
+.post__texto table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.post__texto th, .post__texto td { padding: .6rem .8rem; border-bottom: 1px solid var(--linha); text-align: left; }
+
+/* Ícones das redes sociais */
+.icone { width: 1.15em; height: 1.15em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.icone__ponto { fill: currentColor; stroke: none; }
+.rede { display: inline-flex; align-items: center; gap: .5rem; }
+.rodape nav { flex-wrap: wrap; }
+.lista-links__nome { display: inline-flex; align-items: center; gap: .8rem; }
+.icone--grande { width: 1.6rem; height: 1.6rem; color: var(--ouro-texto); stroke-width: 1.4; }
