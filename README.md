@@ -127,6 +127,16 @@ da página inicial e o quadro no fim dos posts do blog levam para ele.
   tiver conta), anotações internas e "Apagar pedido". Abrir um pedido novo já o marca como "Em andamento".
 - **E-mails** (precisa do `RESEND_API_KEY`): os administradores recebem cada pedido, e quem pediu recebe a confirmação.
 
+## Privacidade e termos
+
+`/privacidade/` (GDPR e LGPD) e `/termos/` ficam em `src/legal.js`, com link no rodapé de todas as páginas, no
+cadastro, no formulário de declaração e na caixa de compra do curso (desistência em 7 dias). O texto descreve o que o
+site guarda de verdade: ao mudar dados coletados, cookies ou prestadores (Cloudflare, Mercado Pago, Resend, Google
+Fonts, serviço de vídeo), atualize o texto e a data `ATUALIZADO`.
+
+Apagar aluno que comprou curso (painel > ficha > Apagar conta): os registros de venda ficam (lei fiscal, 6 anos), e
+nome, e-mail, senha, sessões, mensagens, progresso e acesso aos cursos são apagados; a conta vira "Aluno removido".
+
 ## Mensagens
 
 Conversa entre cada aluno e os administradores (todos os e-mails de `ADMIN_EMAILS` veem e respondem).

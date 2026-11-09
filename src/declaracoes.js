@@ -141,6 +141,7 @@ export async function paginaFormulario(request, env) {
                         <textarea name="mensagem" rows="4" maxlength="3000"></textarea></label>
 
                     <p class="formulario__alerta">Não coloque seu PPSN, senhas nem documentos aqui. Se forem necessários, combinamos por e-mail a forma segura de enviar.</p>
+                    <p class="nota">Suas respostas são usadas só para analisar o seu pedido e falar com você. Veja a <a href="/privacidade/">política de privacidade</a>.</p>
 
                     <!-- Campo escondido: só robôs preenchem -->
                     <label class="formulario__robo" aria-hidden="true">Não preencha<input name="site" tabindex="-1" autocomplete="off"></label>

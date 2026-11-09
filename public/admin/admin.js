@@ -224,7 +224,11 @@ async function paginaAluno(id, mensagem = "", tipo = "ok") {
         }
     });
     document.getElementById("apagar")?.addEventListener("click", async (e) => {
-        if (!confirm(`Apagar a conta de ${a.nome} (${a.email})? Isso não pode ser desfeito.`)) return;
+        const comprou = a.pedidos.some((p) => p.status === "aprovado" || p.status === "reembolsado");
+        const aviso = comprou
+            ? `${a.nome} comprou curso. Os registros de venda ficam guardados (lei fiscal), mas nome, e-mail, senha, mensagens e progresso serão apagados e a conta deixa de funcionar. Continuar?`
+            : `Apagar a conta de ${a.nome} (${a.email})? Isso não pode ser desfeito.`;
+        if (!confirm(aviso)) return;
         e.currentTarget.disabled = true;
         try {
             await api(`/api/admin/alunos/${a.id}`, { method: "DELETE" });
