@@ -126,9 +126,12 @@ export async function alunoLogado(request, env) {
 }
 
 // O e-mail está na lista do segredo ADMIN_EMAILS?
+export function listaAdmins(env) {
+    return String(env.ADMIN_EMAILS || "").toLowerCase().split(/[,;\s]+/).filter(Boolean);
+}
+
 export function ehAdmin(env, email) {
-    const lista = String(env.ADMIN_EMAILS || "").toLowerCase().split(/[,;\s]+/).filter(Boolean);
-    return Boolean(email) && lista.includes(String(email).toLowerCase());
+    return Boolean(email) && listaAdmins(env).includes(String(email).toLowerCase());
 }
 
 async function lerDados(request) {

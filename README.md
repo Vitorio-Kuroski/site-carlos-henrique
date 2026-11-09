@@ -58,7 +58,8 @@ Etapa 1 da plataforma de cursos: alunos criam conta e entram no site.
   **ficha do aluno** (cadastro, último acesso, sessões abertas, enviar link de senha nova e apagar conta).
   O segredo fica no painel do Cloudflare (Workers & Pages > site-carlos-henrique > Settings > Variables and Secrets,
   tipo **Secret**), com os e-mails separados por vírgula; fica fora do código porque o repositório é público.
-  Administrador não pode ser apagado pelo painel. No PC, coloque `ADMIN_EMAILS=...` no arquivo `.dev.vars`.
+  Administrador não pode ser apagado pelo painel e não conta como aluno (fica fora dos números, da lista de alunos e das
+  vendas; na `/conta/` aparece como Administrador, sem "Seus cursos"). No PC, coloque `ADMIN_EMAILS=...` no arquivo `.dev.vars`.
 - **Esqueci minha senha:** `/conta/esqueci/` manda um link (vale 1 hora e uma vez só; até 3 pedidos por e-mail por hora)
   para `/conta/nova-senha/`. Trocar a senha encerra todas as sessões abertas. O e-mail sai pelo **Resend**:
   1. Crie a conta em resend.com, adicione o domínio `henriqueaccountant.com` em **Domains** e copie os registros DNS

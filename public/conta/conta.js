@@ -53,8 +53,15 @@ async function areaDoAluno() {
     document.getElementById("nome").textContent = aluno.nome.split(" ")[0];
     document.getElementById("email").textContent = aluno.email;
     document.getElementById("admin").hidden = !aluno.admin;
-    mostrarCursos();
-    conferirPedido();
+    if (aluno.admin) {
+        // Administrador não é aluno: sem "Seus cursos"; vê todos os cursos e aulas pelo site e pelo painel
+        document.getElementById("rotulo-area").textContent = "Administrador";
+        const caixa = document.getElementById("cursos");
+        caixa.innerHTML = "<h2>Cursos</h2><p>Como administrador, você vê todos os cursos e aulas, sem precisar comprar, e não conta como aluno no painel. <a href=\"/cursos/\">Ver os cursos</a></p>";
+    } else {
+        mostrarCursos();
+        conferirPedido();
+    }
     document.getElementById("sair").addEventListener("click", async () => {
         await fetch("/api/conta/sair", { method: "POST" });
         location.href = "/";
