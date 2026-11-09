@@ -85,7 +85,7 @@ function dataExtenso(iso) {
 }
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const TALLY = "https://tally.so/r/2EqxZj";
+const FORMULARIO = "/declaracao/formulario/";
 const hoje = () => new Date().toISOString().slice(0, 10);
 // Publicado e com data de hoje ou antes
 const VISIVEL = "status = 'publicado' AND data <= ?";
@@ -196,7 +196,7 @@ ${markdownParaHtml(post.conteudo)}
                         <p>Preencha o formulário. A resposta chega direto para mim, e eu retorno pelo e-mail que você informar.</p>
                     </div>
                     <div class="destaque__acao">
-                        <a href="${TALLY}" target="_blank" rel="noopener" class="botao">Abrir o formulário <span aria-hidden="true">→</span></a>
+                        <a href="${FORMULARIO}" class="botao">Abrir o formulário <span aria-hidden="true">→</span></a>
                         <p class="nota">Não coloque PPSN, senhas nem documentos no formulário.</p>
                     </div>
                 </div>

@@ -370,3 +370,30 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .post__rascunho { margin-bottom: 1.4rem; padding: .8rem 1rem; border-radius: 12px; background: #F5ECD3; color: var(--ouro-texto); font-size: .9rem; font-weight: 500; }
 .post__rascunho a { color: inherit; }
 .post__cabeca + .caixa { max-width: 780px; } /* texto alinhado com o título */
+
+/* Formulário de pedido de declaração */
+.formulario__cartao { max-width: 720px; margin: 0 auto; padding: clamp(1.4rem, 4vw, 2.6rem); border-radius: 24px; background: var(--superficie);
+  border: 1px solid var(--linha); display: grid; gap: 1.6rem; }
+.formulario__cartao:focus { outline: none; }
+.formulario .campo select, .formulario .campo textarea { width: 100%; padding: .85rem 1rem; border-radius: 12px; border: 1px solid var(--linha);
+  background: var(--fundo); font: 400 1rem/1.5 var(--corpo); color: var(--texto); }
+.formulario .campo textarea { resize: vertical; }
+.formulario .campo select:focus, .formulario .campo textarea:focus { outline: 2px solid var(--ouro); outline-offset: 1px; border-color: transparent; }
+.grupo { border: 0; padding: 0; margin: 0; display: grid; gap: .55rem; }
+.grupo legend { margin-bottom: .6rem; font-size: .9rem; font-weight: 500; }
+.grupo__linha { display: flex; flex-wrap: wrap; gap: .55rem; }
+.escolha { display: flex; align-items: center; gap: .75rem; padding: .8rem 1rem; border-radius: 12px; border: 1px solid var(--linha);
+  background: var(--fundo); cursor: pointer; transition: border-color .2s, background .2s; }
+.escolha:hover { border-color: var(--ouro); }
+.escolha:has(input:checked) { border-color: var(--verde); background: #E4EDE6; }
+.escolha:has(input:focus-visible) { outline: 2px solid var(--ouro); outline-offset: 2px; }
+.escolha input { width: 18px; height: 18px; flex: none; accent-color: var(--verde); }
+.escolha--curta { padding: .7rem 1.1rem; }
+.formulario__duas { display: grid; gap: 1.6rem; }
+@media (min-width: 640px) { .formulario__duas { grid-template-columns: 1fr 1fr; } }
+.formulario__alerta { padding: .9rem 1.1rem; border-radius: 12px; background: #F5ECD3; color: var(--ouro-texto); font-size: .9rem; }
+.formulario__robo { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.formulario__cartao .botao { justify-self: start; }
+.formulario__cartao .botao:disabled { opacity: .6; cursor: wait; }
+.formulario__ok h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); }
+.formulario__ok strong { color: var(--texto); }

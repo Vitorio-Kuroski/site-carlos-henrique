@@ -112,6 +112,21 @@ Etapa 3: as aulas de cada curso, com vídeo e progresso do aluno.
 - **Painel:** a lista de aulas mostra quantos alunos concluíram cada uma, e a ficha do aluno mostra o progresso em
   cada curso. Código: `src/aulas.js`.
 
+## Pedidos de declaração
+
+O formulário fica no próprio site, em `/declaracao/formulario/` (antes era o Tally). Os botões "Fazer minha declaração"
+da página inicial e o quadro no fim dos posts do blog levam para ele.
+
+- **Perguntas:** nome, serviço (empregado, autônomo, os dois, não sei), anos de imposto (os 4 anteriores ao ano atual),
+  estado civil, acesso à Revenue, situações (aluguel, despesas médicas, mais de um emprego, emergency tax), e-mail,
+  telefone/WhatsApp e mensagem. Aluno logado já vem com nome e e-mail preenchidos.
+- **Segurança:** o formulário avisa para não mandar PPSN, senhas nem documentos e recusa texto com cara de PPSN;
+  campo escondido e tempo mínimo contra robôs; até 5 pedidos por hora por conexão.
+- **Painel:** **Pedidos de declaração** (com o número de novos no menu), filtros por situação (Novo, Em andamento,
+  Concluído, Arquivado) e a ficha do pedido com as respostas, "Responder por e-mail", WhatsApp, ficha do aluno (se
+  tiver conta), anotações internas e "Apagar pedido". Abrir um pedido novo já o marca como "Em andamento".
+- **E-mails** (precisa do `RESEND_API_KEY`): os administradores recebem cada pedido, e quem pediu recebe a confirmação.
+
 ## Mensagens
 
 Conversa entre cada aluno e os administradores (todos os e-mails de `ADMIN_EMAILS` veem e respondem).
@@ -134,7 +149,7 @@ Conversa entre cada aluno e os administradores (todos os e-mails de `ADMIN_EMAIL
 | Cores e fontes | `public/style.css` (variáveis no topo, `:root`) |
 | Foto | `public/img/carlos.jpg` (de preferência vertical e em boa resolução) |
 | Ícone da aba e imagem de compartilhamento | `public/favicon-32.png`, `apple-touch-icon.png` e `og-imagem.png` (1200×630) |
-| Formulário de declaração | links `tally.so` em `public/index.html` |
+| Formulário de declaração | perguntas em `src/declaracoes.js` (página `/declaracao/formulario/`) |
 
 ## Publicar
 

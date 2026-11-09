@@ -872,6 +872,122 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
     });
 }
 
+// ---------- Pedidos de declaração ----------
+
+const STATUS_DECLARACAO = { novo: ["ouro", "Novo"], andamento: ["verde", "Em andamento"], concluido: ["cinza", "Concluído"], arquivado: ["cinza", "Arquivado"] };
+function seloDeclaracao(status) {
+    const [cor, texto] = STATUS_DECLARACAO[status] || ["cinza", status];
+    return `<span class="adm-selo adm-selo--${cor}">${esc(texto)}</span>`;
+}
+
+async function atualizarDeclaracoes() {
+    try {
+        const { novos } = await api("/api/admin/declaracoes/novos");
+        const contador = document.getElementById("contador-declaracoes");
+        contador.textContent = novos > 99 ? "99+" : novos;
+        contador.hidden = !novos;
+    } catch { /* tenta de novo depois */ }
+}
+
+async function paginaDeclaracoes(filtro = "") {
+    titulo.textContent = "Pedidos de declaração";
+    const { declaracoes, contagem } = await api(`/api/admin/declaracoes${filtro ? `?status=${filtro}` : ""}`);
+    const total = Object.values(contagem).reduce((a, b) => a + b, 0);
+    const abas = [["", "Todos", total], ...Object.entries(STATUS_DECLARACAO).map(([k, [, t]]) => [k, t, contagem[k] || 0])];
+    conteudo.innerHTML = `
+        <div class="adm-cabeca"><h1>Pedidos de declaração<small>Enviados pelo formulário do site. Quem pede recebe uma confirmação por e-mail.</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="/declaracao/formulario/" target="_blank" rel="noopener">Ver o formulário</a></div></div>
+        <nav class="adm-abas" aria-label="Filtrar por situação">
+            ${abas.map(([k, t, n]) => `<a href="#/declaracoes${k ? `?${k}` : ""}" class="${k === filtro ? "ativa" : ""}">${t} <span>${n}</span></a>`).join("")}
+        </nav>
+        <section class="adm-bloco">
+            ${declaracoes.length ? `<table class="adm-tabela">
+                <thead><tr><th>Nome</th><th>Serviço</th><th>Anos</th><th>Recebido</th><th>Situação</th><th></th></tr></thead><tbody>
+                ${declaracoes.map((d) => `<tr data-declaracao="${d.id}" tabindex="0">
+                    <td data-rotulo="Nome"><strong>${esc(d.nome)}</strong><br><small>${esc(d.email)}</small></td>
+                    <td data-rotulo="Serviço">${esc(d.servico_texto)}</td>
+                    <td data-rotulo="Anos">${esc(d.anos.join(", "))}</td>
+                    <td data-rotulo="Recebido">${data(d.criado_em, true)}</td>
+                    <td>${seloDeclaracao(d.status)}</td>
+                    <td class="adm-seta" aria-hidden="true">→</td></tr>`).join("")}
+                </tbody></table>` : `<p class="adm-vazio">${filtro ? "Nenhum pedido nesta situação." : "Nenhum pedido ainda. Eles chegam pelo formulário em /declaracao/formulario/."}</p>`}
+        </section>`;
+    conteudo.querySelectorAll("tr[data-declaracao]").forEach((tr) => {
+        const abrir = () => { location.hash = `#/declaracoes/${tr.dataset.declaracao}`; };
+        tr.addEventListener("click", abrir);
+        tr.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(); });
+    });
+    atualizarDeclaracoes();
+}
+
+async function paginaDeclaracao(id, mensagem = "", tipo = "ok") {
+    titulo.textContent = "Pedido de declaração";
+    const { declaracao: d } = await api(`/api/admin/declaracoes/${id}`);
+    // Abrir um pedido novo já o coloca "em andamento"
+    if (d.status === "novo") {
+        await api(`/api/admin/declaracoes/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "andamento", notas: d.notas }) });
+        d.status = "andamento";
+        atualizarDeclaracoes();
+    }
+    const assunto = encodeURIComponent(`Sua declaração de imposto (${d.anos.join(", ")})`);
+    const whatsapp = d.telefone.replace(/\D/g, "");
+    const linha = (rotulo, valor) => `<div><dt>${rotulo}</dt><dd>${valor}</dd></div>`;
+    conteudo.innerHTML = `
+        ${aviso(mensagem, tipo)}
+        <div class="adm-cabeca"><h1>${esc(d.nome)}<small>Pedido #${d.id} · recebido em ${data(d.criado_em, true)}</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="#/declaracoes">${ICONES.voltar}Todos os pedidos</a>
+            <a class="adm-botao adm-botao--principal" href="mailto:${esc(d.email)}?subject=${assunto}">${ICONES.email}Responder por e-mail</a>
+            ${whatsapp.length >= 8 ? `<a class="adm-botao" href="https://wa.me/${whatsapp}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+            ${d.aluno ? `<a class="adm-botao" href="#/alunos/${d.aluno}">Ficha do aluno</a>` : ""}</div></div>
+        <section class="adm-bloco">
+            <div class="adm-bloco__cabeca"><h2>Respostas</h2>${seloDeclaracao(d.status)}</div>
+            <dl class="adm-respostas">
+                ${linha("Serviço", esc(d.servico_texto))}
+                ${linha("Ano(s) de imposto", esc(d.anos.join(", ")))}
+                ${linha("Estado civil", esc(d.estado_civil_texto || "—"))}
+                ${linha("Acesso à Revenue", esc(d.revenue_texto || "—"))}
+                ${linha("Se aplica", d.situacoes_texto.length ? d.situacoes_texto.map(esc).join("<br>") : "Nenhum")}
+                ${linha("E-mail", `<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`)}
+                ${linha("Telefone/WhatsApp", esc(d.telefone || "—"))}
+                ${linha("Mensagem", d.mensagem ? `<span class="adm-respostas__texto">${esc(d.mensagem)}</span>` : "—")}
+            </dl>
+        </section>
+        <section class="adm-bloco">
+            <div class="adm-bloco__cabeca"><h2>Acompanhamento</h2></div>
+            <form class="adm-form" id="form-declaracao">
+                <label class="campo">Situação
+                    <select name="status" class="adm-select">${Object.entries(STATUS_DECLARACAO).map(([k, [, t]]) => `<option value="${k}" ${k === d.status ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+                <label class="campo">Anotações internas <span class="adm-form__dica">só administradores veem (valor combinado, documentos pedidos, prazos…)</span>
+                    <textarea name="notas" maxlength="5000">${esc(d.notas)}</textarea></label>
+                <p class="conta__erro" id="erro-declaracao" role="alert" hidden></p>
+                <div class="adm-form__acoes"><button type="submit" class="adm-botao adm-botao--principal">Salvar</button>
+                    <button type="button" class="adm-botao adm-botao--perigo" id="apagar-declaracao">${ICONES.lixo}Apagar pedido</button></div>
+            </form>
+        </section>`;
+    const form = document.getElementById("form-declaracao");
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+            await api(`/api/admin/declaracoes/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: form.status.value, notas: form.notas.value }) });
+            await paginaDeclaracao(id, "Pedido atualizado.", "ok");
+            atualizarDeclaracoes();
+        } catch (falha) {
+            const erro = document.getElementById("erro-declaracao");
+            erro.textContent = falha.message;
+            erro.hidden = false;
+        }
+    });
+    document.getElementById("apagar-declaracao").addEventListener("click", async () => {
+        if (!confirm(`Apagar o pedido de ${d.nome}? Os dados somem de vez (use quando a pessoa pedir para apagar).`)) return;
+        try {
+            await api(`/api/admin/declaracoes/${id}`, { method: "DELETE" });
+            location.hash = "#/declaracoes";
+        } catch (falha) {
+            alert(falha.message);
+        }
+    });
+}
+
 // ---------- Mensagens ----------
 
 // Texto já escapado, com os endereços https:// clicáveis
@@ -1006,7 +1122,8 @@ async function mostrar() {
     const conversa = /^\/mensagens\/(\d+)$/.exec(caminho);
     pararConversa?.();
     pararConversa = null;
-    const pagina = caminho.startsWith("/blog") ? "blog" : caminho.startsWith("/mensagens") ? "mensagens" : aluno || caminho.startsWith("/alunos") ? "alunos"
+    const declaracao = /^\/declaracoes\/(\d+)$/.exec(caminho);
+    const pagina = caminho.startsWith("/declaracoes") ? "declaracoes" : caminho.startsWith("/blog") ? "blog" : caminho.startsWith("/mensagens") ? "mensagens" : aluno || caminho.startsWith("/alunos") ? "alunos"
         : caminho.startsWith("/cursos") ? "cursos" : caminho.startsWith("/vendas") ? "vendas" : "painel";
     document.querySelectorAll(".adm-menu__nav a[data-pagina]").forEach((a) => a.classList.toggle("ativo", a.dataset.pagina === pagina));
     abrirMenu(false);
@@ -1020,6 +1137,8 @@ async function mostrar() {
         else if (conversa) await paginaConversa(conversa[1]);
         else if (post) { const msg = avisoPendente; avisoPendente = ""; await paginaPostForm(post[1], msg, "ok"); }
         else if (caminho === "/blog") await paginaBlog();
+        else if (declaracao) await paginaDeclaracao(declaracao[1]);
+        else if (caminho.startsWith("/declaracoes")) await paginaDeclaracoes((caminho.split("?")[1] || "").replace(/[^a-z]/g, ""));
         else if (caminho === "/mensagens") await paginaMensagens();
         else await paginaPainel();
         scrollTo(0, 0);
@@ -1064,5 +1183,6 @@ document.getElementById("sair").addEventListener("click", async () => {
     await mostrar();
     // Aviso de mensagens novas no menu e no título da aba, conferido a cada 30 segundos
     atualizarMensagens();
-    setInterval(() => { if (!document.hidden) atualizarMensagens(); }, 30000);
+    atualizarDeclaracoes();
+    setInterval(() => { if (!document.hidden) { atualizarMensagens(); atualizarDeclaracoes(); } }, 30000);
 })();
