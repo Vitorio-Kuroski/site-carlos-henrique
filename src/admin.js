@@ -12,8 +12,14 @@
 //   GET    /api/admin/cursos                 cursos (publicados ou não), com o número de alunos
 //   POST   /api/admin/cursos                 cria um curso { titulo, slug, resumo, descricao, preco, publicado }
 //   PUT    /api/admin/cursos/<id>            altera um curso
+//   GET    /api/admin/cursos/<id>/aulas      aulas do curso (inclusive rascunhos), na ordem
+//   POST   /api/admin/cursos/<id>/aulas      cria uma aula { modulo, titulo, descricao, video, duracao_min, gratis, publicado }
+//   POST   /api/admin/cursos/<id>/aulas/ordem   { ids: [...] } nova ordem das aulas
+//   PUT    /api/admin/aulas/<id>             altera uma aula
+//   DELETE /api/admin/aulas/<id>             apaga uma aula (e o progresso dos alunos nela)
 //   GET    /api/admin/vendas                 pedidos (mais recentes primeiro) e os totais
 import { alunoLogado, ehAdmin, garantirTabelas, json, mandarLinkSenha } from "./alunos.js";
+import { playerDoVideo } from "./aulas.js";
 import { garantirTabelasCursos, reais } from "./cursos.js";
 
 const COLUNAS = "id, nome, email, criado_em, ultimo_acesso";
@@ -72,6 +78,7 @@ export async function rotasAdmin(request, env) {
         return json({ alunos: results.map(comAdmin) });
     }
 
+    if (/^\/api\/admin\/(cursos\/\d+\/aulas|aulas\/\d+)/.test(url.pathname)) return rotasAulasAdmin(request, url, metodo, db);
     if (url.pathname.startsWith("/api/admin/cursos")) return rotasCursosAdmin(request, url, metodo, db);
     if (url.pathname === "/api/admin/vendas" && metodo === "GET") return vendas(db);
 
@@ -88,7 +95,11 @@ export async function rotasAdmin(request, env) {
         const [sessoes, cursos, pedidos] = await db.batch([
             db.prepare("SELECT COUNT(*) AS n FROM sessoes WHERE aluno_id = ? AND expira_em > ?").bind(id, Math.floor(Date.now() / 1000)),
             db.prepare(
-                `SELECT c.id, c.titulo, m.origem, m.criado_em FROM matriculas m JOIN cursos c ON c.id = m.curso_id
+                `SELECT c.id, c.titulo, m.origem, m.criado_em,
+                        (SELECT COUNT(*) FROM aulas a WHERE a.curso_id = c.id AND a.publicado = 1) AS aulas,
+                        (SELECT COUNT(*) FROM progresso p JOIN aulas a ON a.id = p.aula_id
+                         WHERE p.aluno_id = m.aluno_id AND a.curso_id = c.id AND a.publicado = 1) AS concluidas
+                 FROM matriculas m JOIN cursos c ON c.id = m.curso_id
                  WHERE m.aluno_id = ? ORDER BY m.criado_em DESC`).bind(id),
             db.prepare(
                 `SELECT p.id, c.titulo, p.valor_centavos, p.status, p.criado_em, p.pago_em FROM pedidos p JOIN cursos c ON c.id = p.curso_id
@@ -155,7 +166,8 @@ async function lerCurso(request) {
 async function rotasCursosAdmin(request, url, metodo, db) {
     if (url.pathname === "/api/admin/cursos" && metodo === "GET") {
         const { results } = await db.prepare(
-            `SELECT c.*, (SELECT COUNT(*) FROM matriculas m WHERE m.curso_id = c.id) AS alunos
+            `SELECT c.*, (SELECT COUNT(*) FROM matriculas m WHERE m.curso_id = c.id) AS alunos,
+                    (SELECT COUNT(*) FROM aulas a WHERE a.curso_id = c.id) AS aulas
              FROM cursos c ORDER BY c.id DESC`).all();
         return json({ cursos: results.map((c) => ({ ...c, preco: reais(c.preco_centavos) })) });
     }
@@ -179,6 +191,83 @@ async function rotasCursosAdmin(request, url, metodo, db) {
             if (/UNIQUE/i.test(String(erro))) return json({ erro: "Já existe um curso com esse endereço." }, 409);
             throw erro;
         }
+    }
+    return json({ erro: "Não encontrado." }, 404);
+}
+
+// ---------- Aulas ----------
+
+async function lerAula(request) {
+    let d;
+    try { d = await request.json(); } catch { return { erro: "Dados inválidos." }; }
+    const titulo = String(d?.titulo || "").trim();
+    const video = String(d?.video || "").trim();
+    const minutos = Number(d?.duracao_min || 0);
+    if (!titulo || titulo.length > 160) return { erro: "Informe o título da aula (até 160 caracteres)." };
+    if (video && (video.length > 500 || !playerDoVideo(video))) {
+        return { erro: "Link de vídeo não reconhecido. Use um link do YouTube, Vimeo, Bunny Stream ou Cloudflare Stream." };
+    }
+    if (!Number.isInteger(minutos) || minutos < 0 || minutos > 1440) return { erro: "Duração em minutos inválida." };
+    return {
+        titulo, video, minutos,
+        modulo: String(d?.modulo || "").trim().slice(0, 120),
+        descricao: String(d?.descricao || "").trim().slice(0, 20000),
+        gratis: d?.gratis ? 1 : 0,
+        publicado: d?.publicado === false ? 0 : 1,
+    };
+}
+
+async function rotasAulasAdmin(request, url, metodo, db) {
+    const doCurso = /^\/api\/admin\/cursos\/(\d+)\/aulas(\/ordem)?$/.exec(url.pathname);
+    if (doCurso) {
+        const cursoId = Number(doCurso[1]);
+        const curso = await db.prepare("SELECT id FROM cursos WHERE id = ?").bind(cursoId).first();
+        if (!curso) return json({ erro: "Curso não encontrado." }, 404);
+        if (!doCurso[2] && metodo === "GET") {
+            const { results } = await db.prepare(
+                `SELECT a.*, (SELECT COUNT(*) FROM progresso p WHERE p.aula_id = a.id) AS concluiram
+                 FROM aulas a WHERE a.curso_id = ? ORDER BY a.ordem, a.id`).bind(cursoId).all();
+            return json({ aulas: results });
+        }
+        if (!doCurso[2] && metodo === "POST") {
+            const a = await lerAula(request);
+            if (a.erro) return json({ erro: a.erro }, 422);
+            const nova = await db.prepare(
+                `INSERT INTO aulas (curso_id, modulo, titulo, descricao, video, duracao_min, gratis, publicado, ordem)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(ordem), 0) + 1 FROM aulas WHERE curso_id = ?)) RETURNING id`)
+                .bind(cursoId, a.modulo, a.titulo, a.descricao, a.video, a.minutos, a.gratis, a.publicado, cursoId).first();
+            return json({ id: nova.id }, 201);
+        }
+        if (doCurso[2] && metodo === "POST") {
+            let d;
+            try { d = await request.json(); } catch { return json({ erro: "Dados inválidos." }, 400); }
+            const ids = Array.isArray(d?.ids) ? d.ids.map(Number) : [];
+            const { results } = await db.prepare("SELECT id FROM aulas WHERE curso_id = ?").bind(cursoId).all();
+            const atuais = new Set(results.map((r) => r.id));
+            if (ids.length !== atuais.size || new Set(ids).size !== ids.length || !ids.every((id) => atuais.has(id))) {
+                return json({ erro: "A lista de aulas mudou. Recarregue a página." }, 409);
+            }
+            if (ids.length) await db.batch(ids.map((id, i) => db.prepare("UPDATE aulas SET ordem = ? WHERE id = ?").bind(i + 1, id)));
+            return json({ ok: true });
+        }
+    }
+    const id = Number(/^\/api\/admin\/aulas\/(\d+)$/.exec(url.pathname)?.[1]);
+    if (id && metodo === "PUT") {
+        const a = await lerAula(request);
+        if (a.erro) return json({ erro: a.erro }, 422);
+        const r = await db.prepare(
+            "UPDATE aulas SET modulo = ?, titulo = ?, descricao = ?, video = ?, duracao_min = ?, gratis = ?, publicado = ? WHERE id = ?")
+            .bind(a.modulo, a.titulo, a.descricao, a.video, a.minutos, a.gratis, a.publicado, id).run();
+        if (!r.meta.changes) return json({ erro: "Aula não encontrada." }, 404);
+        return json({ id });
+    }
+    if (id && metodo === "DELETE") {
+        const [, r] = await db.batch([
+            db.prepare("DELETE FROM progresso WHERE aula_id = ?").bind(id),
+            db.prepare("DELETE FROM aulas WHERE id = ?").bind(id),
+        ]);
+        if (!r.meta.changes) return json({ erro: "Aula não encontrada." }, 404);
+        return json({ ok: true, mensagem: "Aula apagada." });
     }
     return json({ erro: "Não encontrado." }, 404);
 }

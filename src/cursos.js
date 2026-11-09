@@ -2,10 +2,12 @@
 //
 // Páginas (HTML gerado pelo Worker, com o visual do site):
 //   GET  /cursos/                       lista dos cursos publicados
-//   GET  /cursos/<slug>/                página de venda do curso
+//   GET  /cursos/<slug>/                página de venda do curso (com a lista de aulas)
+//   GET  /cursos/<slug>/assistir/ e /cursos/<slug>/aulas/<id>/   aulas (src/aulas.js)
 // Rotas (JSON):
 //   POST /api/compras        { curso_id }        cria o pedido e devolve o link do checkout do Mercado Pago
-//   GET  /api/conta/cursos                       cursos do aluno logado (área do aluno)
+//   GET  /api/conta/cursos                       cursos do aluno logado, com o progresso (área do aluno)
+//   POST /api/conta/aulas/<id>/concluida         marca a aula como concluída (src/aulas.js)
 //   GET  /api/conta/pedidos/<id>                 situação de um pedido (confere no Mercado Pago se ainda pendente)
 //   POST /api/pagamentos/mercadopago             aviso do Mercado Pago (webhook)
 //
@@ -15,7 +17,8 @@
 //
 // Segredos (painel do Cloudflare): MP_ACCESS_TOKEN (token de produção, APP_USR-...).
 // MP_API muda o endereço da API (só para testes no PC).
-import { alunoLogado, garantirTabelas, json } from "./alunos.js";
+import { alunoLogado, ehAdmin, garantirTabelas, json } from "./alunos.js";
+import { aulasDoCurso, marcarAula, paginaAssistir, paginaAula, porModulo, progressoDosCursos } from "./aulas.js";
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -51,6 +54,27 @@ export const TABELAS_CURSOS = [
         criado_em TEXT NOT NULL DEFAULT (datetime('now')),
         PRIMARY KEY (aluno_id, curso_id)
     )`,
+    // Etapa 3: aulas do curso (agrupadas pelo nome do módulo) e o progresso de cada aluno
+    `CREATE TABLE IF NOT EXISTS aulas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+        modulo TEXT NOT NULL DEFAULT '',
+        titulo TEXT NOT NULL,
+        descricao TEXT NOT NULL DEFAULT '',
+        video TEXT NOT NULL DEFAULT '',
+        duracao_min INTEGER NOT NULL DEFAULT 0,
+        ordem INTEGER NOT NULL DEFAULT 0,
+        gratis INTEGER NOT NULL DEFAULT 0,
+        publicado INTEGER NOT NULL DEFAULT 1,
+        criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS aulas_curso ON aulas(curso_id, ordem)`,
+    `CREATE TABLE IF NOT EXISTS progresso (
+        aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
+        aula_id INTEGER NOT NULL REFERENCES aulas(id) ON DELETE CASCADE,
+        concluida_em TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (aluno_id, aula_id)
+    )`,
 ];
 
 let tabelasCursosProntas = false;
@@ -68,20 +92,33 @@ export function esc(texto) {
     return String(texto ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
+// Texto com links: endereços https:// viram links (materiais das aulas, por exemplo)
+function linha(texto) {
+    return esc(texto).replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (link) => `<a href="${link}" target="_blank" rel="noopener">${link}</a>`);
+}
+
 // Texto da descrição: parágrafos separados por linha em branco; linhas com "- " viram lista
-function paragrafos(texto) {
+export function paragrafos(texto) {
     return String(texto || "").trim().split(/\n\s*\n/).filter(Boolean).map((bloco) => {
         const linhas = bloco.split("\n").map((l) => l.trim());
-        if (linhas.every((l) => l.startsWith("- "))) return `<ul>${linhas.map((l) => `<li>${esc(l.slice(2))}</li>`).join("")}</ul>`;
-        return `<p>${linhas.map(esc).join("<br>")}</p>`;
+        if (linhas.every((l) => l.startsWith("- "))) return `<ul>${linhas.map((l) => `<li>${linha(l.slice(2))}</li>`).join("")}</ul>`;
+        return `<p>${linhas.map(linha).join("<br>")}</p>`;
     }).join("\n");
+}
+
+// "1h 25min", "40min"
+export function duracao(minutos) {
+    if (!minutos) return "";
+    const h = Math.floor(minutos / 60);
+    const m = minutos % 60;
+    return h ? `${h}h${m ? ` ${m}min` : ""}` : `${m}min`;
 }
 
 // ---------- Páginas públicas ----------
 
 const ICONE_CONTA = '<svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
 
-function pagina(request, { titulo, descricao, conteudo, status = 200 }) {
+export function pagina(request, { titulo, descricao, conteudo, status = 200, indexar = true }) {
     const url = new URL(request.url);
     const html = `<!DOCTYPE html>
 <html lang="pt-BR" data-idioma="pt">
@@ -89,7 +126,7 @@ function pagina(request, { titulo, descricao, conteudo, status = 200 }) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="only light">
-    <meta name="description" content="${esc(descricao)}">
+    <meta name="description" content="${esc(descricao)}">${indexar ? "" : '\n    <meta name="robots" content="noindex">'}
     <title>${esc(titulo)} | Carlos Henrique</title>
     <meta name="theme-color" content="#0F3D2E">
     <link rel="canonical" href="${url.origin}${url.pathname}">
@@ -181,6 +218,43 @@ async function paginaCurso(request, env, slug) {
                 <p class="hero__lead">Ele pode ter saído do ar.</p><p style="margin-top:2rem"><a class="botao" href="/cursos/">Ver os cursos</a></p></div></section>`,
         });
     }
+    const aluno = await alunoLogado(request, env);
+    const temCurso = Boolean(aluno && (ehAdmin(env, aluno.email)
+        || await env.DB.prepare("SELECT 1 FROM matriculas WHERE aluno_id = ? AND curso_id = ?").bind(aluno.id, curso.id).first()));
+    const aulas = await aulasDoCurso(env.DB, curso.id);
+    const minutos = aulas.reduce((t, a) => t + a.duracao_min, 0);
+    const resumoAulas = aulas.length ? `${aulas.length} ${aulas.length === 1 ? "aula" : "aulas"}${minutos ? ` · ${duracao(minutos)} de vídeo` : ""}` : "";
+    const caixa = temCurso
+        ? `<aside class="curso__compra">
+                    <p class="curso__tem">Você já tem este curso.</p>
+                    ${resumoAulas ? `<p class="nota">${resumoAulas}</p>` : ""}
+                    <a class="botao" href="/cursos/${esc(curso.slug)}/assistir/">${aulas.length ? "Assistir às aulas" : "Ver o curso"}</a>
+                </aside>`
+        : `<aside class="curso__compra" id="compra" data-curso="${curso.id}">
+                    <p class="curso__preco">${reais(curso.preco_centavos)}</p>
+                    ${resumoAulas ? `<p class="curso__inclui">${resumoAulas}</p>` : ""}
+                    <p class="nota">Pagamento único pelo Mercado Pago: Pix, cartão de crédito ou boleto.</p>
+                    <button type="button" class="botao" id="comprar">Comprar o curso</button>
+                    <p class="conta__erro" id="erro" role="alert" hidden></p>
+                    <p class="nota">Depois do pagamento, o curso aparece na sua <a href="/conta/">área do aluno</a>.</p>
+                </aside>`;
+    const conteudoDoCurso = aulas.length ? `
+        <section class="secao curso__aulas">
+            <div class="caixa">
+                <p class="rotulo"><span class="rotulo__linha"></span>Conteúdo do curso</p>
+                <h2>${resumoAulas}</h2>
+                <div class="aulas aulas--venda">${porModulo(aulas).map((m) => `
+                    <div class="aulas__modulo">
+                        ${m.nome ? `<p class="aulas__nome">${esc(m.nome)}</p>` : ""}
+                        <ol class="aulas__lista">${m.aulas.map((a) => `
+                            <li class="aulas__item">${a.gratis || temCurso
+                                ? `<a href="/cursos/${esc(curso.slug)}/aulas/${a.id}/"><span class="aulas__titulo">${esc(a.titulo)}</span>${a.gratis && !temCurso ? '<span class="aulas__gratis">Assista grátis</span>' : ""}<span class="aulas__tempo">${duracao(a.duracao_min)}</span></a>`
+                                : `<span class="aulas__bloqueada"><span class="aulas__titulo">${esc(a.titulo)}</span><span class="aulas__tempo">${duracao(a.duracao_min)}</span></span>`}</li>`).join("")}
+                        </ol>
+                    </div>`).join("")}
+                </div>
+            </div>
+        </section>` : "";
     return pagina(request, {
         titulo: curso.titulo,
         descricao: curso.resumo || curso.titulo,
@@ -195,15 +269,9 @@ async function paginaCurso(request, env, slug) {
         <section class="secao secao--papel curso">
             <div class="caixa duas">
                 <div class="post__texto curso__texto">${paragrafos(curso.descricao)}</div>
-                <aside class="curso__compra" id="compra" data-curso="${curso.id}">
-                    <p class="curso__preco">${reais(curso.preco_centavos)}</p>
-                    <p class="nota">Pagamento único pelo Mercado Pago: Pix, cartão de crédito ou boleto.</p>
-                    <button type="button" class="botao" id="comprar">Comprar o curso</button>
-                    <p class="conta__erro" id="erro" role="alert" hidden></p>
-                    <p class="nota">Depois do pagamento, o curso aparece na sua <a href="/conta/">área do aluno</a>.</p>
-                </aside>
+                ${caixa}
             </div>
-        </section>`,
+        </section>${conteudoDoCurso}`,
     });
 }
 
@@ -349,7 +417,16 @@ async function cursosDoAluno(request, env) {
     const { results } = await env.DB.prepare(
         `SELECT c.id, c.slug, c.titulo, c.resumo, m.criado_em AS liberado_em FROM matriculas m
          JOIN cursos c ON c.id = m.curso_id WHERE m.aluno_id = ? ORDER BY m.criado_em DESC`).bind(aluno.id).all();
-    return json({ cursos: results });
+    const progresso = await progressoDosCursos(env.DB, aluno.id);
+    return json({
+        cursos: results.map((c) => {
+            const p = progresso[c.id] || { total: 0, concluidas: 0, proxima: null };
+            return {
+                ...c, aulas: p.total, concluidas: p.concluidas,
+                continuar: p.proxima ? `/cursos/${c.slug}/aulas/${p.proxima}/` : `/cursos/${c.slug}/assistir/`,
+            };
+        }),
+    });
 }
 
 // ---------- Roteamento ----------
@@ -372,6 +449,15 @@ export async function rotasCursos(request, env) {
         if (!pathname.endsWith("/")) return Response.redirect(new URL(`/cursos/${slug}/`, url).toString(), 301);
         return paginaCurso(request, env, slug);
     }
+    const assistir = /^\/cursos\/([a-z0-9-]+)\/assistir\/?$/.exec(pathname)?.[1];
+    if (assistir && metodo === "GET") return paginaAssistir(request, env, assistir);
+    const aula = /^\/cursos\/([a-z0-9-]+)\/aulas\/(\d+)\/?$/.exec(pathname);
+    if (aula && metodo === "GET") {
+        if (!pathname.endsWith("/")) return Response.redirect(new URL(`${pathname}/`, url).toString(), 301);
+        return paginaAula(request, env, aula[1], Number(aula[2]));
+    }
+    const marcar = /^\/api\/conta\/aulas\/(\d+)\/concluida$/.exec(pathname)?.[1];
+    if (marcar && metodo === "POST") return marcarAula(request, env, Number(marcar));
     if (pathname === "/api/compras" && metodo === "POST") return comprar(request, env);
     if (pathname === "/api/conta/cursos" && metodo === "GET") return cursosDoAluno(request, env);
     const pedido = /^\/api\/conta\/pedidos\/(\d+)$/.exec(pathname)?.[1];
