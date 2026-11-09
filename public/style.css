@@ -251,10 +251,15 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
   .botao--pequeno { padding: .5rem .7rem; }
 }
 
-/* Rodapé: quatro links com ícone cabem melhor no celular */
+/* Rodapé: no celular, os links viram uma fileira de ícones redondos (o nome continua lá para leitores de tela) */
 .rodape nav { gap: .8rem 1.3rem; }
 @media (max-width: 600px) {
-  .rodape nav { display: grid; grid-template-columns: repeat(2, max-content); gap: .9rem 2rem; }
+  .rodape__linha { flex-direction: column; gap: 1.4rem; }
+  .rodape nav { order: -1; display: flex; flex-wrap: nowrap; gap: .75rem; }
+  .rodape .rede { width: 46px; height: 46px; justify-content: center; gap: 0; border-radius: 50%; font-size: 0;
+    border: 1px solid rgba(226, 199, 127, .35); transition: background .2s, border-color .2s; }
+  .rodape .rede:hover, .rodape .rede:focus-visible { background: rgba(226, 199, 127, .12); border-color: var(--ouro-claro); }
+  .rodape .rede .icone { width: 20px; height: 20px; }
 }
 
 /* Esqueci minha senha */
