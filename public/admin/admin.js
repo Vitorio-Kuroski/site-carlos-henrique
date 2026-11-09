@@ -51,6 +51,15 @@ function seloAluno(a) {
     return dias <= 7 ? '<span class="adm-selo adm-selo--verde">Ativo</span>' : '<span class="adm-selo adm-selo--cinza">Inativo</span>';
 }
 
+const SELOS_PEDIDO = {
+    aprovado: ["verde", "Aprovado"], pendente: ["ouro", "Pendente"], recusado: ["vermelho", "Recusado"],
+    cancelado: ["cinza", "Cancelado"], reembolsado: ["vermelho", "Reembolsado"],
+};
+function seloPedido(status) {
+    const [cor, texto] = SELOS_PEDIDO[status] || ["cinza", status];
+    return `<span class="adm-selo adm-selo--${cor}">${esc(texto)}</span>`;
+}
+
 function tabelaAlunos(alunos, vazio) {
     if (!alunos.length) return `<p class="adm-vazio">${esc(vazio)}</p>`;
     const linhas = alunos.map((a) => `
@@ -93,15 +102,14 @@ async function paginaPainel() {
                 <p class="adm-cartao__nota">${r.ultimos30} nos últimos 30 dias</p></div>
             <div class="adm-cartao"><p class="adm-cartao__rotulo">Ativos em 7 dias</p><p class="adm-cartao__valor">${r.ativos7}</p>
                 <p class="adm-cartao__nota">entraram na conta na última semana</p></div>
+            <div class="adm-cartao adm-cartao--verde"><p class="adm-cartao__rotulo">Receita do mês</p><p class="adm-cartao__valor">${esc(r.receita_mes)}</p>
+                <p class="adm-cartao__nota">${r.vendas_mes} ${r.vendas_mes === 1 ? "venda aprovada" : "vendas aprovadas"} · <a href="#/vendas">ver vendas</a></p></div>
         </div>
         <section class="adm-bloco">
             <div class="adm-bloco__cabeca"><h2>Últimos cadastros</h2><a class="link-seta" href="#/alunos">Ver todos</a></div>
             ${tabelaAlunos(r.recentes, "Ainda não há alunos cadastrados.")}
         </section>
-        <section class="adm-bloco">
-            <div class="adm-bloco__cabeca"><h2>Em breve</h2></div>
-            <div class="adm-bloco__corpo"><p>Cursos, vendas pelo Mercado Pago e cupons aparecem aqui quando a próxima etapa da plataforma estiver pronta.</p></div>
-        </section>`;
+`;
 }
 
 async function paginaAlunos() {
@@ -147,11 +155,60 @@ async function paginaAluno(id, mensagem = "", tipo = "ok") {
                 <p class="adm-cartao__nota">${a.sessoes_ativas} ${a.sessoes_ativas === 1 ? "sessão aberta" : "sessões abertas"}</p></div>
             <div class="adm-cartao"><p class="adm-cartao__rotulo">Cadastro</p><p class="adm-cartao__valor adm-cartao__valor--texto">${data(a.criado_em, true)}</p></div>
             <div class="adm-cartao"><p class="adm-cartao__rotulo">Último acesso</p><p class="adm-cartao__valor adm-cartao__valor--texto">${data(a.ultimo_acesso, true)}</p></div>
+            <div class="adm-cartao adm-cartao--verde"><p class="adm-cartao__rotulo">Total pago</p><p class="adm-cartao__valor">${esc(a.total_pago)}</p></div>
         </div>
         <section class="adm-bloco">
-            <div class="adm-bloco__cabeca"><h2>Cursos</h2></div>
-            <div class="adm-bloco__corpo"><p>Este aluno ainda não tem cursos. Quando a venda de cursos estiver pronta, as compras e o botão "Liberar curso" aparecem aqui.</p></div>
+            <div class="adm-bloco__cabeca"><h2>Cursos (${a.cursos.length})</h2></div>
+            ${a.cursos.length ? `<table class="adm-tabela adm-tabela--fixa">
+                <thead><tr><th>Curso</th><th>Liberado em</th><th>Como</th><th></th></tr></thead><tbody>
+                ${a.cursos.map((c) => `<tr><td data-rotulo="Curso">${esc(c.titulo)}</td><td data-rotulo="Liberado em">${data(c.criado_em)}</td>
+                    <td data-rotulo="Como">${c.origem === "compra" ? "Compra" : "Liberado à mão"}</td>
+                    <td>${c.origem === "manual" ? `<button type="button" class="adm-mini" data-remover="${c.id}" data-titulo="${esc(c.titulo)}">Remover acesso</button>` : ""}</td></tr>`).join("")}
+                </tbody></table>` : '<p class="adm-vazio">Este aluno ainda não tem cursos.</p>'}
+            <div class="adm-liberar">
+                <select id="curso-liberar" aria-label="Curso para liberar"><option value="">Carregando os cursos…</option></select>
+                <button type="button" class="adm-botao adm-botao--principal" id="liberar">Liberar curso</button>
+            </div>
+        </section>
+        <section class="adm-bloco">
+            <div class="adm-bloco__cabeca"><h2>Pagamentos</h2></div>
+            ${a.pedidos.length ? `<table class="adm-tabela adm-tabela--fixa">
+                <thead><tr><th>Pedido</th><th>Curso</th><th>Valor</th><th>Data</th><th>Situação</th></tr></thead><tbody>
+                ${a.pedidos.map((p) => `<tr><td data-rotulo="Pedido">#${p.id}</td><td data-rotulo="Curso">${esc(p.titulo)}</td>
+                    <td data-rotulo="Valor">${esc(p.valor)}</td><td data-rotulo="Data">${data(p.pago_em || p.criado_em, true)}</td><td>${seloPedido(p.status)}</td></tr>`).join("")}
+                </tbody></table>` : '<p class="adm-vazio">Nenhum pagamento.</p>'}
         </section>`;
+
+    // Liberar curso: só os que o aluno ainda não tem
+    const { cursos } = await api("/api/admin/cursos");
+    const temCurso = new Set(a.cursos.map((c) => c.id));
+    const opcoes = cursos.filter((c) => !temCurso.has(c.id));
+    const select = document.getElementById("curso-liberar");
+    select.innerHTML = opcoes.length
+        ? '<option value="">Escolha um curso…</option>' + opcoes.map((c) => `<option value="${c.id}">${esc(c.titulo)}${c.publicado ? "" : " (não publicado)"}</option>`).join("")
+        : `<option value="">${cursos.length ? "O aluno já tem todos os cursos" : "Nenhum curso cadastrado"}</option>`;
+    document.getElementById("liberar").disabled = !opcoes.length;
+    document.getElementById("liberar").addEventListener("click", async (e) => {
+        if (!select.value) return;
+        const titulo = select.options[select.selectedIndex].text;
+        if (!confirm(`Liberar "${titulo}" para ${a.nome}, sem pagamento?`)) return;
+        e.currentTarget.disabled = true;
+        try {
+            const r = await api(`/api/admin/alunos/${a.id}/cursos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curso_id: Number(select.value) }) });
+            await paginaAluno(a.id, r.mensagem, "ok");
+        } catch (falha) {
+            await paginaAluno(a.id, falha.message, "erro");
+        }
+    });
+    conteudo.querySelectorAll("[data-remover]").forEach((botao) => botao.addEventListener("click", async () => {
+        if (!confirm(`Tirar o acesso de ${a.nome} ao curso "${botao.dataset.titulo}"?`)) return;
+        try {
+            const r = await api(`/api/admin/alunos/${a.id}/cursos/${botao.dataset.remover}`, { method: "DELETE" });
+            await paginaAluno(a.id, r.mensagem, "ok");
+        } catch (falha) {
+            await paginaAluno(a.id, falha.message, "erro");
+        }
+    }));
 
     document.getElementById("senha").addEventListener("click", async (e) => {
         if (!confirm(`Enviar um link de senha nova para ${a.email}?`)) return;
@@ -175,6 +232,118 @@ async function paginaAluno(id, mensagem = "", tipo = "ok") {
     });
 }
 
+async function paginaCursos() {
+    titulo.textContent = "Cursos";
+    const { cursos } = await api("/api/admin/cursos");
+    conteudo.innerHTML = `
+        <div class="adm-cabeca"><h1>Cursos<small>Os publicados aparecem em /cursos/ para venda.</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="/cursos/" target="_blank" rel="noopener">Ver a página de cursos</a>
+            <a class="adm-botao adm-botao--principal" href="#/cursos/novo">+ Novo curso</a></div></div>
+        <section class="adm-bloco">
+            ${cursos.length ? `<table class="adm-tabela">
+                <thead><tr><th>Curso</th><th>Preço</th><th>Alunos</th><th>Situação</th><th></th></tr></thead><tbody>
+                ${cursos.map((c) => `<tr data-curso="${c.id}" tabindex="0"><td data-rotulo="Curso">${esc(c.titulo)}</td><td data-rotulo="Preço">${esc(c.preco)}</td>
+                    <td data-rotulo="Alunos">${c.alunos}</td>
+                    <td>${c.publicado ? '<span class="adm-selo adm-selo--verde">Publicado</span>' : '<span class="adm-selo adm-selo--cinza">Rascunho</span>'}</td>
+                    <td class="adm-seta" aria-hidden="true">→</td></tr>`).join("")}
+                </tbody></table>` : '<p class="adm-vazio">Nenhum curso ainda. Toque em "Novo curso" para criar o primeiro.</p>'}
+        </section>`;
+    conteudo.querySelectorAll("tr[data-curso]").forEach((tr) => {
+        const abrir = () => { location.hash = `#/cursos/${tr.dataset.curso}`; };
+        tr.addEventListener("click", abrir);
+        tr.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(); });
+    });
+}
+
+function slugDe(texto) {
+    return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+}
+
+async function paginaCursoForm(id, mensagem = "", tipo = "ok") {
+    const novo = id === "novo";
+    titulo.textContent = novo ? "Novo curso" : "Editar curso";
+    const c = novo ? { titulo: "", slug: "", resumo: "", descricao: "", preco_centavos: 0, publicado: 0 }
+        : (await api("/api/admin/cursos")).cursos.find((x) => x.id === Number(id));
+    if (!c) throw new Error("Curso não encontrado.");
+    const preco = c.preco_centavos ? (c.preco_centavos / 100).toFixed(2).replace(".", ",") : "";
+    conteudo.innerHTML = `
+        ${aviso(mensagem, tipo)}
+        <div class="adm-cabeca"><h1>${novo ? "Novo curso" : esc(c.titulo)}<small>${novo ? "Comece como rascunho e publique quando estiver pronto." : `${c.alunos} ${c.alunos === 1 ? "aluno" : "alunos"} · endereço /cursos/${esc(c.slug)}/`}</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="#/cursos">${ICONES.voltar}Voltar</a>
+            ${!novo && c.publicado ? `<a class="adm-botao" href="/cursos/${esc(c.slug)}/" target="_blank" rel="noopener">Ver a página</a>` : ""}</div></div>
+        <section class="adm-bloco">
+            <form class="adm-form" id="form-curso" novalidate>
+                <div class="adm-form__linha">
+                    <label class="campo">Título<input name="titulo" required maxlength="120" value="${esc(c.titulo)}"></label>
+                    <label class="campo">Preço (R$)<input name="preco" required inputmode="decimal" placeholder="97,00" value="${preco}"></label>
+                </div>
+                <label class="campo">Endereço da página <span class="adm-form__dica">henriqueaccountant.com/cursos/<b id="previa-slug">${esc(c.slug) || "…"}</b>/</span>
+                    <input name="slug" required maxlength="80" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="${esc(c.slug)}"></label>
+                <label class="campo">Resumo <span class="adm-form__dica">uma ou duas frases, aparece na lista e no Google</span>
+                    <input name="resumo" maxlength="300" value="${esc(c.resumo)}"></label>
+                <label class="campo">Descrição <span class="adm-form__dica">para quem é, o que a pessoa aprende… Deixe uma linha em branco entre os parágrafos; linhas começando com "- " viram lista.</span>
+                    <textarea name="descricao" maxlength="20000">${esc(c.descricao)}</textarea></label>
+                <label class="adm-check"><input type="checkbox" name="publicado" ${c.publicado ? "checked" : ""}> Publicado (aparece em /cursos/ e pode ser comprado)</label>
+                <p class="conta__erro" id="erro-curso" role="alert" hidden></p>
+                <div class="adm-form__acoes"><button type="submit" class="adm-botao adm-botao--principal">${novo ? "Criar curso" : "Salvar"}</button></div>
+            </form>
+        </section>`;
+    const form = document.getElementById("form-curso");
+    let slugManual = !novo;
+    form.slug.addEventListener("input", () => { slugManual = true; document.getElementById("previa-slug").textContent = form.slug.value || "…"; });
+    form.titulo.addEventListener("input", () => {
+        if (slugManual) return;
+        form.slug.value = slugDe(form.titulo.value);
+        document.getElementById("previa-slug").textContent = form.slug.value || "…";
+    });
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const erro = document.getElementById("erro-curso");
+        erro.hidden = true;
+        const botao = form.querySelector("button[type=submit]");
+        botao.disabled = true;
+        try {
+            const corpo = {
+                titulo: form.titulo.value, slug: form.slug.value, resumo: form.resumo.value, descricao: form.descricao.value,
+                preco: form.preco.value, publicado: form.publicado.checked,
+            };
+            const r = await api(novo ? "/api/admin/cursos" : `/api/admin/cursos/${id}`, {
+                method: novo ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
+            });
+            if (novo) location.hash = `#/cursos/${r.id}`;
+            else await paginaCursoForm(id, "Curso salvo.", "ok");
+        } catch (falha) {
+            erro.textContent = falha.message;
+            erro.hidden = false;
+            botao.disabled = false;
+        }
+    });
+}
+
+async function paginaVendas() {
+    titulo.textContent = "Vendas";
+    const v = await api("/api/admin/vendas");
+    document.getElementById("contador-pendentes").textContent = v.pendentes;
+    document.getElementById("contador-pendentes").hidden = !v.pendentes;
+    conteudo.innerHTML = `
+        <div class="adm-cabeca"><h1>Vendas<small>Pagamentos pelo Mercado Pago. O curso é liberado sozinho quando o pagamento é aprovado.</small></h1></div>
+        <div class="adm-cartoes">
+            <div class="adm-cartao adm-cartao--verde"><p class="adm-cartao__rotulo">Receita do mês</p><p class="adm-cartao__valor">${esc(v.receita_mes)}</p></div>
+            <div class="adm-cartao"><p class="adm-cartao__rotulo">Receita total</p><p class="adm-cartao__valor">${esc(v.receita_total)}</p></div>
+            <div class="adm-cartao"><p class="adm-cartao__rotulo">Vendas aprovadas</p><p class="adm-cartao__valor">${v.aprovados}</p></div>
+            <div class="adm-cartao"><p class="adm-cartao__rotulo">Pendentes</p><p class="adm-cartao__valor">${v.pendentes}</p>
+                <p class="adm-cartao__nota">aguardando Pix ou boleto</p></div>
+        </div>
+        <section class="adm-bloco">
+            ${v.vendas.length ? `<table class="adm-tabela">
+                <thead><tr><th>Aluno</th><th>Curso</th><th>Valor</th><th>Data</th><th>Situação</th><th></th></tr></thead><tbody>
+                ${v.vendas.map((p) => `<tr data-id="${p.aluno_id}" tabindex="0"><td data-rotulo="Aluno">${esc(p.aluno)}</td><td data-rotulo="Curso">${esc(p.curso)}</td>
+                    <td data-rotulo="Valor">${esc(p.valor)}</td><td data-rotulo="Data">${data(p.pago_em || p.criado_em, true)}</td>
+                    <td>${seloPedido(p.status)}</td><td class="adm-seta" aria-hidden="true">→</td></tr>`).join("")}
+                </tbody></table>` : '<p class="adm-vazio">Nenhuma venda ainda.</p>'}
+        </section>`;
+}
+
 // ---------- Navegação e menu ----------
 
 function atualizarContador(novos) {
@@ -186,12 +355,17 @@ function atualizarContador(novos) {
 async function mostrar() {
     const caminho = location.hash.replace(/^#/, "") || "/";
     const aluno = /^\/alunos\/(\d+)$/.exec(caminho);
-    const pagina = aluno || caminho.startsWith("/alunos") ? "alunos" : "painel";
+    const curso = /^\/cursos\/(novo|\d+)$/.exec(caminho);
+    const pagina = aluno || caminho.startsWith("/alunos") ? "alunos"
+        : caminho.startsWith("/cursos") ? "cursos" : caminho.startsWith("/vendas") ? "vendas" : "painel";
     document.querySelectorAll(".adm-menu__nav a[data-pagina]").forEach((a) => a.classList.toggle("ativo", a.dataset.pagina === pagina));
     abrirMenu(false);
     try {
         if (aluno) await paginaAluno(aluno[1]);
         else if (caminho === "/alunos") await paginaAlunos();
+        else if (curso) await paginaCursoForm(curso[1]);
+        else if (caminho === "/cursos") await paginaCursos();
+        else if (caminho === "/vendas") await paginaVendas();
         else await paginaPainel();
         scrollTo(0, 0);
     } catch (falha) {

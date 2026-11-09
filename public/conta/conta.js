@@ -1,6 +1,18 @@
 // Cadastro, login e área do aluno: conversa com as rotas /api/conta/* do Worker (src/alunos.js).
 
-// Formulários de entrar e de criar conta: deu certo, vai para a área do aluno
+// Para onde ir depois de entrar: o "?voltar=" (só caminhos deste site) ou a área do aluno
+function destinoDepoisDeEntrar() {
+    const voltar = new URLSearchParams(location.search).get("voltar") || "";
+    return /^\/(?![\/\\])/.test(voltar) ? voltar : "/conta/";
+}
+
+// Leva o "?voltar=" para os links entre Entrar e Criar conta
+document.querySelectorAll(".conta__troca a").forEach((a) => {
+    const voltar = new URLSearchParams(location.search).get("voltar");
+    if (voltar) a.href += "?voltar=" + encodeURIComponent(voltar);
+});
+
+// Formulários de entrar e de criar conta: deu certo, vai para a área do aluno (ou de volta ao curso)
 function formularioConta(rota) {
     const form = document.getElementById("form");
     const erro = document.getElementById("erro");
@@ -20,7 +32,7 @@ function formularioConta(rota) {
             });
             const dados = await resposta.json().catch(() => ({}));
             if (!resposta.ok) throw new Error(dados.erro || "Não deu certo. Tente de novo.");
-            location.href = "/conta/";
+            location.href = destinoDepoisDeEntrar();
         } catch (falha) {
             erro.textContent = falha.message === "Failed to fetch" ? "Sem conexão. Tente de novo." : falha.message;
             erro.hidden = false;
@@ -41,6 +53,8 @@ async function areaDoAluno() {
     document.getElementById("nome").textContent = aluno.nome.split(" ")[0];
     document.getElementById("email").textContent = aluno.email;
     document.getElementById("admin").hidden = !aluno.admin;
+    mostrarCursos();
+    conferirPedido();
     document.getElementById("sair").addEventListener("click", async () => {
         await fetch("/api/conta/sair", { method: "POST" });
         location.href = "/";
@@ -107,4 +121,47 @@ function formularioNovaSenha() {
             location.href = "/conta/";
         } catch {}
     });
+}
+
+// Área do aluno: cursos liberados
+async function mostrarCursos() {
+    const caixa = document.getElementById("cursos");
+    const { cursos } = await (await fetch("/api/conta/cursos")).json();
+    if (!cursos?.length) return;
+    caixa.innerHTML = "<h2>Seus cursos</h2>";
+    const lista = document.createElement("ul");
+    lista.className = "conta__lista";
+    for (const c of cursos) {
+        const item = document.createElement("li");
+        const titulo = document.createElement("strong");
+        titulo.textContent = c.titulo;
+        const nota = document.createElement("span");
+        nota.textContent = "As aulas estão sendo preparadas e aparecem aqui em breve.";
+        item.append(titulo, nota);
+        lista.append(item);
+    }
+    caixa.append(lista);
+}
+
+// Volta do Mercado Pago (?pedido=123): mostra a situação do pagamento
+async function conferirPedido() {
+    const id = new URLSearchParams(location.search).get("pedido");
+    if (!/^\d+$/.test(id || "")) return;
+    history.replaceState(null, "", location.pathname);
+    const aviso = document.getElementById("aviso-pedido");
+    const textos = {
+        aprovado: ["ok", "Pagamento aprovado! O curso já está liberado."],
+        pendente: ["espera", "Recebemos o seu pedido. Assim que o pagamento for confirmado (no Pix, em segundos; no boleto, em até 3 dias úteis), o curso aparece aqui."],
+        recusado: ["erro", "O pagamento não foi aprovado. Você pode tentar de novo pela página do curso."],
+        cancelado: ["erro", "O pagamento foi cancelado. Você pode tentar de novo pela página do curso."],
+        reembolsado: ["erro", "Este pagamento foi reembolsado."],
+    };
+    try {
+        const pedido = await (await fetch("/api/conta/pedidos/" + id)).json();
+        const [tipo, texto] = textos[pedido.status] || textos.pendente;
+        aviso.className = "conta__aviso conta__aviso--" + tipo;
+        aviso.textContent = texto;
+        aviso.hidden = false;
+        if (pedido.status === "aprovado") mostrarCursos();
+    } catch {}
 }

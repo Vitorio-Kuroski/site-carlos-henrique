@@ -263,3 +263,21 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .conta__esqueci a { color: var(--ouro-texto); }
 .conta__ok { margin-top: 1.6rem; padding: 1.1rem 1.2rem; border-radius: 14px; background: #EEF3EC; color: #23452F; font-size: .95rem; }
 .conta__ok p + p { margin-top: .5rem; }
+
+/* Cursos: página de venda e área do aluno */
+.curso .duas { align-items: start; }
+.curso__texto { padding-bottom: 0; }
+.curso__compra { position: sticky; top: 96px; padding: 2rem; border-radius: 20px; background: var(--superficie); border: 1px solid var(--linha); display: grid; gap: 1rem; }
+.curso__preco { font-family: var(--titulo); font-size: 2.6rem; line-height: 1; }
+.curso__compra .botao { justify-content: center; }
+.curso__compra .botao:disabled { opacity: .6; cursor: wait; }
+.curso__compra .nota a { color: var(--ouro-texto); }
+.conta__cursos a { color: var(--ouro-texto); font-weight: 600; }
+.conta__lista { margin-top: .8rem; list-style: none; padding: 0; display: grid; gap: .6rem; }
+.conta__lista li { padding: .9rem 1rem; border-radius: 12px; background: var(--superficie); border: 1px solid var(--linha); }
+.conta__lista strong { display: block; }
+.conta__lista span { display: block; margin-top: .2rem; font-size: .85rem; color: var(--suave); }
+.conta__aviso { margin-top: 1.4rem; padding: .9rem 1rem; border-radius: 12px; font-size: .92rem; }
+.conta__aviso--ok { background: #E4F1E8; color: #1F5A3A; }
+.conta__aviso--espera { background: #F5ECD3; color: #6B531A; }
+.conta__aviso--erro { background: #FBEDE6; color: #8A3517; }
