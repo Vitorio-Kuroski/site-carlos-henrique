@@ -33,6 +33,10 @@ são montadas pelo Worker (`src/blog.js`), então publicar coloca o post no ar n
   Ficam no D1 e são servidas em `/imagens/<id>` com cache longo. Aceita JPG, PNG e WebP.
 - **Situação:** **Rascunho** (só administradores veem, com um aviso no topo), **Publicado** e **Agendado** (publicado
   com data futura: aparece sozinho nesse dia). Publicar exige resumo e texto.
+- **Salvamento automático:** rascunho salva sozinho no site 3 segundos depois da última mudança (e na hora, ao sair
+  da página ou trocar de aplicativo). Post já publicado não muda sozinho: as mudanças ficam guardadas no aparelho até
+  "Salvar alterações". Uma cópia sempre fica no aparelho; se a aba fechar ou a internet cair, o post oferece
+  **Recuperar** quando for aberto de novo.
 - Páginas: `/blog/` (lista), `/blog/<endereço>/` (post, com dados para o Google) e `/blog/sitemap.xml`.
   O blog é só em português.
 

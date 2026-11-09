@@ -536,13 +536,14 @@ async function paginaBlog() {
 }
 
 async function paginaPostForm(id, mensagem = "", tipo = "ok") {
-    const novo = id === "novo";
+    let novo = id === "novo";
     titulo.textContent = novo ? "Novo post" : "Editar post";
     const { post, hoje } = novo ? { post: null, hoje: new Date().toISOString().slice(0, 10) } : await api(`/api/admin/posts/${id}`);
     const p = post || { titulo: "", slug: "", resumo: "", conteudo: "", capa: "", status: "rascunho", data: hoje };
     const publicado = p.status === "publicado";
     conteudo.innerHTML = `
         ${aviso(mensagem, tipo)}
+        <p class="adm-aviso adm-aviso--recuperar" id="recuperar" role="status" hidden></p>
         <div class="adm-cabeca"><h1>${novo ? "Novo post" : esc(p.titulo)}<small>${novo ? "Comece como rascunho; publique quando estiver pronto." : seloPost(p, hoje)}</small></h1>
             <div class="adm-acoes"><a class="adm-botao" href="#/blog">${ICONES.voltar}Voltar</a>
             ${novo ? "" : `<a class="adm-botao" href="/blog/${esc(p.slug)}/" target="_blank" rel="noopener">${publicado ? "Ver no site" : "Ver como vai ficar"}</a>
@@ -586,6 +587,7 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
                        <button type="submit" class="adm-botao" data-status="rascunho">Tirar do ar (voltar para rascunho)</button>`
                     : `<button type="submit" class="adm-botao adm-botao--principal" data-status="publicado">Publicar</button>
                        <button type="submit" class="adm-botao" data-status="rascunho">Salvar rascunho</button>`}
+                <span class="adm-form__auto" id="auto-status" role="status" aria-live="polite"></span>
             </div>
         </form>`;
 
@@ -594,8 +596,123 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
     const previa = document.getElementById("previa");
     let capa = p.capa;
     let sujo = false;
-    form.addEventListener("input", () => { sujo = true; });
-    formularioSujo = () => sujo;
+    form.addEventListener("input", mudou);
+
+    // ---------- Salvamento automático ----------
+    // Rascunho: salva no site 3 segundos depois da última mudança.
+    // Post publicado: não muda o site sozinho; as mudanças ficam guardadas no aparelho até "Salvar alterações".
+    // Sempre: uma cópia fica no aparelho (localStorage); se a aba fechar ou a internet cair, dá para recuperar.
+    const CAMPOS = ["titulo", "slug", "resumo", "conteudo", "capa", "data"];
+    const chave = () => `blog-post-${novo ? "novo" : id}`;
+    const autoStatus = document.getElementById("auto-status");
+    const campos = () => ({ titulo: form.titulo.value, slug: form.slug.value, resumo: form.resumo.value, conteudo: editor.value, capa, data: form.data.value });
+    const igualAoSalvo = (c) => CAMPOS.every((k) => String(c[k] ?? "") === String(p[k] ?? ""));
+    const guardarLocal = () => { try { localStorage.setItem(chave(), JSON.stringify({ ...campos(), guardado_em: Date.now() })); } catch { /* sem espaço ou bloqueado */ } };
+    const apagarLocal = (k = chave()) => { try { localStorage.removeItem(k); } catch { /* nada */ } };
+    const hora = (t) => new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const podeSalvar = (c) => c.titulo.trim() && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(c.slug);
+    let timer = null;
+    let salvando = null;
+
+    function mudou() {
+        sujo = true;
+        guardarLocal();
+        clearTimeout(timer);
+        if (p.status === "rascunho") {
+            autoStatus.textContent = "Alterações ainda não salvas…";
+            timer = setTimeout(salvarAutomatico, 3000);
+        } else {
+            autoStatus.textContent = "Alterações guardadas neste aparelho. Toque em “Salvar alterações” para atualizar o site.";
+        }
+    }
+
+    async function salvarAutomatico() {
+        timer = null;
+        if (!sujo || p.status !== "rascunho" || !form.isConnected) return;
+        if (salvando) { await salvando; return salvarAutomatico(); }
+        if (!form.slug.value && form.titulo.value.trim()) {
+            form.slug.value = slugDe(form.titulo.value);
+            document.getElementById("previa-slug").textContent = form.slug.value || "…";
+        }
+        const c = campos();
+        if (!podeSalvar(c)) {
+            autoStatus.textContent = "Rascunho guardado neste aparelho. Escreva o título para salvar no site.";
+            return;
+        }
+        autoStatus.textContent = "Salvando…";
+        salvando = (async () => {
+            try {
+                const r = await api(novo ? "/api/admin/posts" : `/api/admin/posts/${id}`, {
+                    method: novo ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...c, status: "rascunho" }),
+                });
+                if (novo) {
+                    // O post novo passou a existir: o endereço do painel muda sem recarregar a página
+                    apagarLocal();
+                    novo = false;
+                    id = String(r.id);
+                    hashAtual = `#/blog/${id}`;
+                    history.replaceState(null, "", hashAtual);
+                    titulo.textContent = "Editar post";
+                }
+                Object.assign(p, c);
+                sujo = !igualAoSalvo(campos()); // continuou escrevendo enquanto salvava?
+                if (sujo) guardarLocal(); else apagarLocal();
+                autoStatus.textContent = `Rascunho salvo automaticamente às ${hora(Date.now())}.`;
+            } catch (falha) {
+                const motivo = /fetch|network/i.test(falha.message) ? "sem conexão." : falha.message;
+                autoStatus.textContent = `Não salvou no site: ${motivo} O texto continua guardado neste aparelho e salva quando a conexão voltar.`;
+            }
+        })();
+        await salvando;
+        salvando = null;
+    }
+
+    // Ao sair da página (ou trocar de aplicativo no celular), manda o rascunho pendente na hora
+    function descarregar() {
+        if (!sujo || p.status !== "rascunho" || novo || !podeSalvar(campos())) return;
+        clearTimeout(timer);
+        fetch(`/api/admin/posts/${id}`, {
+            method: "PUT", keepalive: true, headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...campos(), status: "rascunho" }),
+        }).catch(() => { /* a cópia no aparelho continua */ });
+    }
+    formularioSujo = () => {
+        if (p.status === "rascunho" && !novo) { descarregar(); return false; }
+        return sujo;
+    };
+
+    // Versão guardada no aparelho e diferente da salva: oferece recuperar
+    let guardado = null;
+    try { guardado = JSON.parse(localStorage.getItem(chave()) || "null"); } catch { /* nada */ }
+    if (guardado && !igualAoSalvo(guardado)) {
+        const caixa = document.getElementById("recuperar");
+        const quando = new Date(guardado.guardado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        caixa.innerHTML = `<span>Há uma versão deste post que não foi salva no site (${esc(quando)}).</span>
+            <button type="button" class="adm-botao adm-botao--principal" id="recuperar-sim">Recuperar</button>
+            <button type="button" class="adm-botao" id="recuperar-nao">Descartar</button>`;
+        caixa.hidden = false;
+        document.getElementById("recuperar-sim").addEventListener("click", () => {
+            form.titulo.value = guardado.titulo || "";
+            form.slug.value = guardado.slug || "";
+            form.resumo.value = guardado.resumo || "";
+            editor.value = guardado.conteudo || "";
+            form.data.value = guardado.data || form.data.value;
+            capa = guardado.capa || "";
+            const img = document.getElementById("capa-previa");
+            if (capa) img.src = capa;
+            img.hidden = !capa;
+            document.getElementById("capa-remover").hidden = !capa;
+            document.getElementById("previa-slug").textContent = form.slug.value || "…";
+            document.getElementById("conta-resumo").textContent = form.resumo.value.length;
+            // O endereço continua seguindo o título, a não ser que tenha sido mudado à mão
+            slugManual = Boolean(form.slug.value) && form.slug.value !== slugDe(form.titulo.value);
+            caixa.hidden = true;
+            mudou();
+        });
+        document.getElementById("recuperar-nao").addEventListener("click", () => { apagarLocal(); caixa.hidden = true; });
+    } else if (guardado) {
+        apagarLocal();
+    }
 
     // Endereço gerado pelo título enquanto o post é novo
     let slugManual = !novo;
@@ -620,8 +737,8 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
             img.src = capa;
             img.hidden = false;
             document.getElementById("capa-remover").hidden = false;
-            capaStatus.textContent = "Capa enviada. Lembre de salvar o post.";
-            sujo = true;
+            capaStatus.textContent = "Capa enviada.";
+            mudou();
         } catch (falha) {
             capaStatus.textContent = falha.message;
         }
@@ -630,8 +747,8 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
         capa = "";
         document.getElementById("capa-previa").hidden = true;
         document.getElementById("capa-remover").hidden = true;
-        capaStatus.textContent = "Capa removida. Lembre de salvar o post.";
-        sujo = true;
+        capaStatus.textContent = "Capa removida.";
+        mudou();
     });
 
     // Barra de formatação: escreve as marcas no texto, em volta do que estiver selecionado
@@ -641,7 +758,7 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
         editor.setRangeText(antes + sel + depois, ini, fim, "end");
         if (!value.slice(ini, fim) && exemplo) editor.setSelectionRange(ini + antes.length, ini + antes.length + exemplo.length);
         editor.focus();
-        sujo = true;
+        mudou();
     };
     // Marca o começo de cada linha selecionada (ou da linha do cursor)
     const inicioDeLinha = (marca, exemplo) => {
@@ -653,7 +770,7 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
         const linhas = trecho.split("\n").map((l, i) => (typeof marca === "function" ? marca(i) : marca) + l.replace(/^(#{1,4}\s+|[-*]\s+|\d+[.)]\s+|>\s?)/, ""));
         editor.setRangeText(linhas.join("\n"), comeco, final, "end");
         editor.focus();
-        sujo = true;
+        mudou();
     };
     const acoes = {
         negrito: () => inserir("**", "**", "texto em negrito"),
@@ -687,6 +804,7 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
             editor.value = editor.value.replace(marcador, "");
             alert(falha.message);
         }
+        mudou();
     });
     // Ctrl+B / Ctrl+I
     editor.addEventListener("keydown", (e) => {
@@ -713,6 +831,8 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
         erro.hidden = true;
         const botoes = form.querySelectorAll("button[type=submit]");
         botoes.forEach((b) => { b.disabled = true; });
+        clearTimeout(timer);
+        if (salvando) await salvando; // espera o salvamento automático terminar (pode ter criado o post)
         try {
             const corpo = {
                 titulo: form.titulo.value, slug: form.slug.value, resumo: form.resumo.value, conteudo: editor.value,
@@ -722,6 +842,7 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
                 method: novo ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
             });
             sujo = false;
+            apagarLocal();
             const msg = status === "publicado"
                 ? (corpo.data > hoje ? `Post agendado para ${dataPost(corpo.data)}.` : "Post publicado! Já está no site.")
                 : "Rascunho salvo.";
@@ -743,6 +864,7 @@ async function paginaPostForm(id, mensagem = "", tipo = "ok") {
         try {
             await api(`/api/admin/posts/${id}`, { method: "DELETE" });
             sujo = false;
+            apagarLocal();
             location.hash = "#/blog";
         } catch (falha) {
             alert(falha.message);
@@ -938,6 +1060,7 @@ document.getElementById("sair").addEventListener("click", async () => {
     }
     addEventListener("hashchange", mostrar);
     addEventListener("beforeunload", (e) => { if (formularioSujo?.()) { e.preventDefault(); e.returnValue = ""; } });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) formularioSujo?.(); });
     await mostrar();
     // Aviso de mensagens novas no menu e no título da aba, conferido a cada 30 segundos
     atualizarMensagens();
