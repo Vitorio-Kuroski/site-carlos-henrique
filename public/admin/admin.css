@@ -104,3 +104,21 @@
 .adm-aviso { margin-bottom: 1.2rem; padding: .85rem 1.1rem; border-radius: 12px; font-size: .92rem; }
 .adm-aviso--ok { background: #E4F1E8; color: #1F5A3A; }
 .adm-aviso--erro { background: #FBEDE6; color: #8A3517; }
+
+/* Formulário de curso e listas da ficha */
+.adm-form { display: grid; gap: 1rem; padding: 1.3rem; }
+.adm-form .campo textarea { width: 100%; min-height: 180px; padding: .85rem 1rem; border-radius: 12px; border: 1px solid var(--linha); background: var(--fundo); font: 400 .95rem/1.6 var(--corpo); color: var(--texto); resize: vertical; }
+.adm-form .campo textarea:focus { outline: 2px solid var(--ouro); outline-offset: 1px; border-color: transparent; }
+.adm-form__linha { display: grid; gap: 1rem; }
+@media (min-width: 700px) { .adm-form__linha { grid-template-columns: 2fr 1fr; } }
+.adm-form__dica { font-size: .8rem; font-weight: 400; color: var(--suave); }
+.adm-check { display: flex; align-items: center; gap: .6rem; font-size: .92rem; }
+.adm-check input { width: 18px; height: 18px; accent-color: #0F3D2E; }
+.adm-form__acoes { display: flex; flex-wrap: wrap; gap: .6rem; }
+.adm-liberar { display: flex; flex-wrap: wrap; gap: .6rem; padding: 1rem 1.3rem; border-top: 1px solid var(--linha); background: #F7F4EC; }
+.adm-liberar select { flex: 1; min-width: 200px; padding: .6rem .8rem; border-radius: 10px; border: 1px solid var(--linha); background: var(--superficie); font: 400 .92rem var(--corpo); color: var(--texto); }
+.adm-mini { padding: .3rem .65rem; border-radius: 8px; border: 1px solid #E5B9A6; background: none; color: #8A3517; font: 500 .8rem var(--corpo); cursor: pointer; }
+.adm-mini:hover { background: #FBEDE6; }
+.adm-selo--vermelho { background: #FBEDE6; color: #8A3517; }
+.adm-tabela--fixa tbody tr { cursor: default; }
+.adm-tabela--fixa tbody tr:hover { background: none; }

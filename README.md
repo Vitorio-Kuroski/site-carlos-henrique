@@ -68,6 +68,29 @@ Etapa 1 da plataforma de cursos: alunos criam conta e entram no site.
   O remetente é `Carlos Henrique <nao-responda@henriqueaccountant.com>`; para trocar, crie a variável
   `EMAIL_REMETENTE`. Sem a chave, o link aparece só no log do Worker (útil para testar no PC).
 
+## Cursos e vendas (Mercado Pago)
+
+Etapa 2: cursos pagos com liberação automática. As aulas em vídeo são a etapa 3.
+
+- **Cadastrar:** painel `/admin/` > **Cursos** > Novo curso (título, preço, endereço, resumo, descrição). Só os marcados
+  como **Publicado** aparecem em `/cursos/` e podem ser comprados. As páginas `/cursos/` e `/cursos/<endereço>/` são
+  montadas pelo Worker (`src/cursos.js`) a partir do banco.
+- **Compra:** o botão "Comprar o curso" pede login (e volta para o curso depois), cria um pedido e manda o aluno para o
+  **Checkout Pro** do Mercado Pago (Pix, cartão ou boleto). O preço vem sempre do banco, nunca do navegador.
+- **Liberação:** o Mercado Pago avisa em `/api/pagamentos/mercadopago`; o Worker não confia no aviso e consulta o
+  pagamento direto na API com a chave da conta. Só libera se estiver aprovado, com a referência do pedido e o valor
+  certo em reais. Na volta do checkout, `/conta/?pedido=<id>` também confere a situação. Reembolso ou chargeback
+  tira o acesso.
+- **Painel:** **Vendas** (receita do mês, total, aprovadas, pendentes e a lista) e, na ficha do aluno, os cursos dele,
+  os pagamentos, o total pago e **Liberar curso** (acesso sem pagamento, para cortesia ou pagamento por fora; esse
+  acesso pode ser removido). Aluno com compra registrada não pode ser apagado, para não perder o histórico.
+- **Configurar (uma vez):** em mercadopago.com.br > Seu negócio > Configurações > Credenciais (ou
+  mercadopago.com.br/developers > Suas integrações > criar aplicação "Checkout Pro"), copie o **Access Token de
+  produção** (começa com `APP_USR-`) e crie no Cloudflare o segredo `MP_ACCESS_TOKEN` (tipo **Secret**). Sem ele o
+  botão de compra mostra "pagamentos indisponíveis". Não é preciso cadastrar a URL de aviso: ela vai em cada pedido.
+- **Testar no PC:** em `.dev.vars`, use o Access Token **de teste** em `MP_ACCESS_TOKEN`; `MP_API` troca o endereço da
+  API (só para testes com um servidor falso).
+
 ## O que trocar
 
 | O quê | Onde |
