@@ -336,3 +336,28 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .curso__inclui { font-size: .92rem; font-weight: 500; }
 .curso__tem { font-family: var(--titulo); font-size: 1.6rem; line-height: 1.2; }
 .aula__texto.post__texto { padding-bottom: 0; }
+
+/* Mensagens */
+.conta__mensagens { display: flex; align-items: center; gap: 1rem; margin: -1rem 0 2rem; padding: 1.1rem 1.4rem; border-radius: 16px;
+  background: var(--superficie); border: 1px solid var(--linha); text-decoration: none; transition: border-color .2s; }
+.conta__mensagens:hover { border-color: var(--ouro); }
+.conta__mensagens > span:first-child { flex: 1; font-size: .9rem; color: var(--suave); }
+.conta__mensagens strong { display: block; font-size: 1rem; color: var(--texto); }
+.conta__selo { padding: .2rem .65rem; border-radius: 999px; background: var(--verde); color: var(--fundo); font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.chat .nota { margin-top: .6rem; }
+.chat__lista { margin-top: 1.6rem; display: flex; flex-direction: column; gap: .8rem; max-height: 55vh; min-height: 160px; overflow-y: auto;
+  padding: 1rem; border-radius: 16px; background: var(--fundo); border: 1px solid var(--linha); }
+.chat__vazio { margin: auto; color: var(--suave); font-size: .92rem; text-align: center; }
+.chat__msg { max-width: 85%; padding: .7rem .95rem; border-radius: 16px; }
+.chat__msg--minha { align-self: flex-end; background: var(--verde); color: var(--fundo); border-bottom-right-radius: 4px; }
+.chat__msg--deles { align-self: flex-start; background: var(--superficie); border: 1px solid var(--linha); border-bottom-left-radius: 4px; }
+.chat__autor { font-size: .72rem; opacity: .75; margin-bottom: .15rem; }
+.chat__texto { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem; line-height: 1.5; }
+.chat__msg--minha a { color: var(--ouro-claro); }
+.chat__msg--deles a { color: var(--ouro-texto); }
+.chat__form { margin-top: 1rem; display: grid; gap: .7rem; }
+.chat__form textarea { width: 100%; padding: .85rem 1rem; border-radius: 14px; border: 1px solid var(--linha); background: var(--superficie);
+  font: 400 1rem/1.5 var(--corpo); color: var(--texto); resize: vertical; min-height: 84px; }
+.chat__form textarea:focus { outline: 2px solid var(--ouro); outline-offset: 1px; border-color: transparent; }
+.chat__form .botao { justify-self: end; }
+.chat__form .botao:disabled { opacity: .6; cursor: wait; }

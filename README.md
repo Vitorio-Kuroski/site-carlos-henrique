@@ -112,6 +112,20 @@ Etapa 3: as aulas de cada curso, com vídeo e progresso do aluno.
 - **Painel:** a lista de aulas mostra quantos alunos concluíram cada uma, e a ficha do aluno mostra o progresso em
   cada curso. Código: `src/aulas.js`.
 
+## Mensagens
+
+Conversa entre cada aluno e os administradores (todos os e-mails de `ADMIN_EMAILS` veem e respondem).
+
+- **Aluno:** área do aluno > **Mensagens** (`/conta/mensagens/`). Mostra "1 nova" quando chega resposta e confere
+  respostas novas a cada 15 segundos com a página aberta.
+- **Painel:** menu **Mensagens**, com o número de não lidas (também no título da aba, conferido a cada 30 segundos),
+  a lista de conversas e a conversa aberta, que se atualiza sozinha. Na ficha do aluno, o botão **Mensagens** abre
+  (ou começa) a conversa com ele. Mostra se a resposta já foi lida.
+- **Aviso por e-mail** (precisa do `RESEND_API_KEY`): o aluno recebe um e-mail quando chega uma resposta e ele ainda
+  não tinha nenhuma para ler; os administradores, quando um aluno escreve e não havia mensagem dele esperando.
+- Texto até 4.000 caracteres; endereços `https://` viram links; até 20 mensagens do aluno a cada 10 minutos.
+  Anexos ficam para depois (precisam de um lugar para guardar arquivos, o R2). Código: `src/mensagens.js`.
+
 ## O que trocar
 
 | O quê | Onde |
