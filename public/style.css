@@ -338,11 +338,11 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .aula__texto.post__texto { padding-bottom: 0; }
 
 /* Mensagens */
-.conta__mensagens { display: flex; align-items: center; gap: 1rem; margin: -1rem 0 2rem; padding: 1.1rem 1.4rem; border-radius: 16px;
-  background: var(--superficie); border: 1px solid var(--linha); text-decoration: none; transition: border-color .2s; }
-.conta__mensagens:hover { border-color: var(--ouro); }
-.conta__mensagens > span:first-child { flex: 1; font-size: .9rem; color: var(--suave); }
-.conta__mensagens strong { display: block; font-size: 1rem; color: var(--texto); }
+.conta__ajuda { display: flex; align-items: center; gap: .9rem; margin: -1rem 0 2rem; padding: 1rem 1.2rem; border-radius: 14px;
+  background: var(--superficie); border: 1px solid var(--linha); font-size: 1.1rem; font-weight: 500; text-decoration: none; transition: border-color .2s, background .2s; }
+.conta__ajuda:hover { border-color: var(--ouro); background: #FBF4E2; }
+.conta__ajuda svg { width: 26px; height: 26px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.conta__ajuda span:first-of-type { flex: 1; }
 .conta__selo { padding: .2rem .65rem; border-radius: 999px; background: var(--verde); color: var(--fundo); font-size: .78rem; font-weight: 600; white-space: nowrap; }
 .chat .nota { margin-top: .6rem; }
 .chat__lista { margin-top: 1.6rem; display: flex; flex-direction: column; gap: .8rem; max-height: 55vh; min-height: 160px; overflow-y: auto;

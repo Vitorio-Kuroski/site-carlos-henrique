@@ -116,7 +116,7 @@ Etapa 3: as aulas de cada curso, com vídeo e progresso do aluno.
 
 Conversa entre cada aluno e os administradores (todos os e-mails de `ADMIN_EMAILS` veem e respondem).
 
-- **Aluno:** área do aluno > **Mensagens** (`/conta/mensagens/`). Mostra "1 nova" quando chega resposta e confere
+- **Aluno:** área do aluno > botão **Ajuda** (`/conta/mensagens/`). Mostra "1 nova" quando chega resposta e confere
   respostas novas a cada 15 segundos com a página aberta.
 - **Painel:** menu **Mensagens**, com o número de não lidas (também no título da aba, conferido a cada 30 segundos),
   a lista de conversas e a conversa aberta, que se atualiza sozinha. Na ficha do aluno, o botão **Mensagens** abre
