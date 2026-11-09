@@ -105,6 +105,27 @@ function cartao(p) {
                     </a>`;
 }
 
+// Página inicial: coloca os 3 posts mais recentes na seção "Últimos posts" (public/index.html, [data-posts]).
+// Sem posts publicados, a seção inteira some. Vale para a versão em inglês (os posts são em português).
+export async function comUltimosPosts(resposta, env) {
+    if (!(resposta.headers.get("Content-Type") || "").includes("text/html")) return resposta;
+    let posts = [];
+    try {
+        await garantirTabelasBlog(env.DB);
+        posts = (await env.DB.prepare(
+            `SELECT slug, titulo, resumo, conteudo, capa, data FROM posts WHERE ${VISIVEL} ORDER BY data DESC, id DESC LIMIT 3`).bind(hoje()).all()).results;
+    } catch (erro) {
+        console.error("Últimos posts: falha ao ler o banco", erro);
+    }
+    const nova = new HTMLRewriter()
+        .on("[data-ultimos-posts]", { element(el) { if (!posts.length) el.remove(); else el.removeAttribute("data-ultimos-posts"); } })
+        .on("[data-posts]", { element(el) { el.setInnerContent(posts.map(cartao).join(""), { html: true }); el.removeAttribute("data-posts"); } })
+        .transform(resposta);
+    const cabecalhos = new Headers(nova.headers);
+    cabecalhos.set("Cache-Control", "public, max-age=0, must-revalidate");
+    return new Response(nova.body, { status: nova.status, headers: cabecalhos });
+}
+
 async function paginaLista(request, env) {
     const { results } = await env.DB.prepare(
         `SELECT slug, titulo, resumo, conteudo, capa, data FROM posts WHERE ${VISIVEL} ORDER BY data DESC, id DESC`).bind(hoje()).all();
