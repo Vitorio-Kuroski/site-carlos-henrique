@@ -59,6 +59,9 @@ let tabelasProntas = false;
 export async function garantirTabelas(db) {
     if (tabelasProntas) return;
     await db.batch(TABELAS.map((sql) => db.prepare(sql)));
+    // Colunas acrescentadas depois da primeira versão (o banco no ar já tem a tabela)
+    const colunas = (await db.prepare("PRAGMA table_info(alunos)").all()).results.map((c) => c.name);
+    if (!colunas.includes("ultimo_acesso")) await db.prepare("ALTER TABLE alunos ADD COLUMN ultimo_acesso TEXT").run();
     tabelasProntas = true;
 }
 
@@ -107,6 +110,7 @@ async function criarSessao(db, alunoId) {
         db.prepare("DELETE FROM sessoes WHERE expira_em < ?").bind(agora()),
         db.prepare("INSERT INTO sessoes (token_hash, aluno_id, expira_em) VALUES (?, ?, ?)")
             .bind(await sha256(token), alunoId, expira),
+        db.prepare("UPDATE alunos SET ultimo_acesso = datetime('now') WHERE id = ?").bind(alunoId),
     ]);
     return cookieSessao(token, SESSAO_DIAS * 86400);
 }
@@ -203,7 +207,7 @@ function esc(texto) {
 async function enviarEmailSenha(env, aluno, link) {
     if (!env.RESEND_API_KEY) {
         console.log(`[esqueci minha senha] RESEND_API_KEY não configurada. Link para ${aluno.email}: ${link}`);
-        return;
+        return "sem_chave";
     }
     const primeiro = aluno.nome.split(" ")[0];
     const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#18261F;max-width:520px">
@@ -227,7 +231,11 @@ async function enviarEmailSenha(env, aluno, link) {
             text: texto,
         }),
     });
-    if (!resposta.ok) console.error("Falha ao enviar o e-mail de senha nova:", resposta.status, await resposta.text());
+    if (!resposta.ok) {
+        console.error("Falha ao enviar o e-mail de senha nova:", resposta.status, await resposta.text());
+        return "falhou";
+    }
+    return "enviado";
 }
 
 async function esqueci(request, env, ctx) {
@@ -241,22 +249,28 @@ async function esqueci(request, env, ctx) {
     const aluno = await db.prepare("SELECT id, nome, email FROM alunos WHERE email = ?").bind(email).first();
     if (!aluno) return resposta;
 
+    // Envia depois de responder: a resposta não demora mais para quem tem conta
+    const envio = mandarLinkSenha(request, env, aluno).catch((erro) => console.error("Falha ao enviar o e-mail:", erro));
+    if (ctx?.waitUntil) ctx.waitUntil(envio);
+    else await envio;
+    return resposta;
+}
+
+// Cria o link de senha nova e manda por e-mail. Devolve "enviado", "limite" (3 pedidos na última hora),
+// "sem_chave" (falta RESEND_API_KEY) ou "falhou" (o Resend recusou).
+// Exportado para o painel do administrador ("Enviar link de senha nova").
+export async function mandarLinkSenha(request, env, aluno) {
+    const db = env.DB;
     const { pedidos } = await db.prepare("SELECT COUNT(*) AS pedidos FROM redefinicoes WHERE aluno_id = ? AND criado_em > ?")
         .bind(aluno.id, agora() - 3600).first();
-    if (pedidos >= LIMITE_PEDIDOS) return resposta;
-
+    if (pedidos >= LIMITE_PEDIDOS) return "limite";
     const token = paraHex(crypto.getRandomValues(new Uint8Array(32)));
     await db.batch([
         db.prepare("DELETE FROM redefinicoes WHERE expira_em < ?").bind(agora() - 3600),
         db.prepare("INSERT INTO redefinicoes (token_hash, aluno_id, criado_em, expira_em) VALUES (?, ?, ?, ?)")
             .bind(await sha256(token), aluno.id, agora(), agora() + LINK_VALIDADE),
     ]);
-    const link = new URL(`/conta/nova-senha/?token=${token}`, request.url).toString();
-    // Envia depois de responder: a resposta não demora mais para quem tem conta
-    const envio = enviarEmailSenha(env, aluno, link).catch((erro) => console.error("Falha ao enviar o e-mail:", erro));
-    if (ctx?.waitUntil) ctx.waitUntil(envio);
-    else await envio;
-    return resposta;
+    return enviarEmailSenha(env, aluno, new URL(`/conta/nova-senha/?token=${token}`, request.url).toString());
 }
 
 async function novaSenha(request, env) {
