@@ -1,9 +1,11 @@
 // Cadastro, login e área do aluno: conversa com as rotas /api/conta/* do Worker (src/alunos.js).
 
-// Para onde ir depois de entrar: o "?voltar=" (só caminhos deste site) ou a área do aluno
-function destinoDepoisDeEntrar() {
+// Para onde ir depois de entrar: o "?voltar=" (só caminhos deste site); se não houver,
+// o administrador vai direto para o painel e o aluno para a área do aluno
+function destinoDepoisDeEntrar(admin = false) {
     const voltar = new URLSearchParams(location.search).get("voltar") || "";
-    return /^\/(?![\/\\])/.test(voltar) ? voltar : "/conta/";
+    if (/^\/(?![\/\\])/.test(voltar)) return voltar;
+    return admin ? "/admin/" : "/conta/";
 }
 
 // Leva o "?voltar=" para os links entre Entrar e Criar conta
@@ -32,7 +34,7 @@ function formularioConta(rota) {
             });
             const dados = await resposta.json().catch(() => ({}));
             if (!resposta.ok) throw new Error(dados.erro || "Não deu certo. Tente de novo.");
-            location.href = destinoDepoisDeEntrar();
+            location.href = destinoDepoisDeEntrar(dados.admin);
         } catch (falha) {
             erro.textContent = falha.message === "Failed to fetch" ? "Sem conexão. Tente de novo." : falha.message;
             erro.hidden = false;
@@ -50,18 +52,15 @@ async function areaDoAluno() {
         return;
     }
     const aluno = await resposta.json();
+    // Administrador não usa a área do aluno: vai direto para o painel
+    if (aluno.admin) {
+        location.replace("/admin/");
+        return;
+    }
     document.getElementById("nome").textContent = aluno.nome.split(" ")[0];
     document.getElementById("email").textContent = aluno.email;
-    document.getElementById("admin").hidden = !aluno.admin;
-    if (aluno.admin) {
-        // Administrador não é aluno: sem "Seus cursos"; vê todos os cursos e aulas pelo site e pelo painel
-        document.getElementById("rotulo-area").textContent = "Administrador";
-        const caixa = document.getElementById("cursos");
-        caixa.innerHTML = "<h2>Cursos</h2><p>Como administrador, você vê todos os cursos e aulas, sem precisar comprar, e não conta como aluno no painel. <a href=\"/cursos/\">Ver os cursos</a></p>";
-    } else {
-        mostrarCursos();
-        conferirPedido();
-    }
+    mostrarCursos();
+    conferirPedido();
     document.getElementById("sair").addEventListener("click", async () => {
         await fetch("/api/conta/sair", { method: "POST" });
         location.href = "/";
