@@ -230,7 +230,6 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 
 /* Utilitários da área do aluno */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.conta__admin { margin-top: -0.6rem; margin-bottom: 1.6rem; }
 
 /* Elementos com "hidden" ficam escondidos mesmo com display definido */
 [hidden] { display: none !important; }

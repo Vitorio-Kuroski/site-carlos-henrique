@@ -194,7 +194,7 @@ async function entrar(request, env) {
         return json({ erro: "E-mail ou senha incorretos." }, 401);
     }
     await db.prepare("DELETE FROM tentativas_login WHERE email = ?").bind(email).run();
-    return json({ nome: aluno.nome, email: aluno.email }, 200, { "Set-Cookie": await criarSessao(db, aluno.id) });
+    return json({ nome: aluno.nome, email: aluno.email, admin: ehAdmin(env, aluno.email) }, 200, { "Set-Cookie": await criarSessao(db, aluno.id) });
 }
 
 async function sair(request, env) {
