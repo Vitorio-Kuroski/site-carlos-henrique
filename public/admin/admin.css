@@ -184,3 +184,8 @@
   font: 400 1rem/1.7 var(--corpo); background: var(--fundo); resize: vertical; }
 .adm-form .adm-editor textarea:focus { outline: none; }
 .adm-editor__previa { min-height: 420px; max-width: none; padding: 1.2rem 1.4rem 2rem; font-size: 1.02rem; background: var(--superficie); }
+.adm-form__acoes { align-items: center; }
+.adm-form__auto { font-size: .82rem; color: var(--suave); }
+.adm-aviso--recuperar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; background: #F5ECD3; color: #7A5F1E; border-color: #E6D3A1; }
+.adm-aviso--recuperar span { flex: 1; min-width: 220px; }
+.adm-aviso--recuperar[hidden] { display: none; }
