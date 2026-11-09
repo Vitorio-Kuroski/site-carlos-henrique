@@ -136,12 +136,29 @@ export async function rotasAdmin(request, env) {
         if (id === eu.id) return json({ erro: "Você não pode apagar a sua própria conta por aqui." }, 422);
         if (ehAdmin(env, aluno.email)) return json({ erro: "Não dá para apagar um administrador." }, 422);
         const compra = await db.prepare("SELECT 1 FROM pedidos WHERE aluno_id = ? AND status IN ('aprovado', 'reembolsado')").bind(id).first();
-        if (compra) return json({ erro: "Este aluno tem compras registradas. Para não perder o histórico de vendas, a conta não pode ser apagada." }, 422);
+        if (compra) {
+            // Quem comprou: os registros de venda ficam (lei fiscal, 6 anos); o resto dos dados pessoais é apagado
+            // e a conta vira "Aluno removido", sem e-mail nem senha que funcionem (política de privacidade).
+            await db.batch([
+                db.prepare("DELETE FROM sessoes WHERE aluno_id = ?").bind(id),
+                db.prepare("DELETE FROM redefinicoes WHERE aluno_id = ?").bind(id),
+                db.prepare("DELETE FROM tentativas_login WHERE email = ?").bind(aluno.email),
+                db.prepare("DELETE FROM matriculas WHERE aluno_id = ?").bind(id),
+                db.prepare("DELETE FROM mensagens WHERE aluno_id = ?").bind(id),
+                db.prepare("DELETE FROM progresso WHERE aluno_id = ?").bind(id),
+                db.prepare("DELETE FROM pedidos WHERE aluno_id = ? AND status NOT IN ('aprovado', 'reembolsado')").bind(id),
+                db.prepare(`UPDATE alunos SET nome = 'Aluno removido', email = 'removido-' || id || '@removido.invalid',
+                            senha_hash = '-', senha_sal = '-', ultimo_acesso = NULL WHERE id = ?`).bind(id),
+            ]);
+            return json({ ok: true, anonimizado: true });
+        }
         await db.batch([
             db.prepare("DELETE FROM sessoes WHERE aluno_id = ?").bind(id),
             db.prepare("DELETE FROM redefinicoes WHERE aluno_id = ?").bind(id),
             db.prepare("DELETE FROM matriculas WHERE aluno_id = ?").bind(id),
             db.prepare("DELETE FROM mensagens WHERE aluno_id = ?").bind(id),
+            db.prepare("DELETE FROM progresso WHERE aluno_id = ?").bind(id),
+            db.prepare("DELETE FROM tentativas_login WHERE email = ?").bind(aluno.email),
             db.prepare("DELETE FROM pedidos WHERE aluno_id = ? AND status != 'aprovado'").bind(id),
             db.prepare("DELETE FROM alunos WHERE id = ?").bind(id),
         ]);

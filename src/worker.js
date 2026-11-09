@@ -4,6 +4,7 @@
 // /api/admin/*: painel do administrador (src/admin.js).
 // /blog/*, /imagens/*: blog com os posts e as imagens do banco (src/blog.js).
 // /declaracao/formulario/, /api/declaracoes, /api/admin/declaracoes*: pedidos de declaração (src/declaracoes.js).
+// /privacidade/, /termos/: política de privacidade e termos de uso (src/legal.js).
 // /api/conta/mensagens*, /api/admin/mensagens*: mensagens entre alunos e administradores (src/mensagens.js).
 // /cursos/*, /api/compras, /api/conta/cursos, /api/conta/pedidos/*, /api/conta/aulas/*, /api/pagamentos/*: cursos e pagamentos (src/cursos.js).
 //
@@ -17,12 +18,14 @@ import { rotasCursos } from "./cursos.js";
 import { rotasMensagens } from "./mensagens.js";
 import { rotasBlog } from "./blog.js";
 import { rotasDeclaracoes } from "./declaracoes.js";
+import { rotasLegal } from "./legal.js";
 
 const ROBOS = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|lighthouse/i;
 
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
+        if (/^\/(privacidade|termos)\/?$/.test(url.pathname)) return rotasLegal(request);
         if (/^\/(declaracao\/formulario\/?|api\/declaracoes|api\/admin\/declaracoes(\/.*)?)$/.test(url.pathname)) {
             const resposta = await rotasDeclaracoes(request, env, ctx);
             if (resposta) return resposta;

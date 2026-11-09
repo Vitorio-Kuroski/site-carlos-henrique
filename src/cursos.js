@@ -177,6 +177,7 @@ ${conteudo}
                 </nav>
             </div>
             <p class="rodape__aviso">O conteúdo é educativo e não substitui uma orientação individual.</p>
+            <p class="rodape__legal"><a href="/privacidade/">Privacidade</a> · <a href="/termos/">Termos de uso</a></p>
         </div>
     </footer>
     ${script ? '<script src="/cursos/curso.js"></script>' : ""}
@@ -240,7 +241,7 @@ async function paginaCurso(request, env, slug) {
                     <p class="nota">Pagamento único pelo Mercado Pago: Pix, cartão de crédito ou boleto.</p>
                     <button type="button" class="botao" id="comprar">Comprar o curso</button>
                     <p class="conta__erro" id="erro" role="alert" hidden></p>
-                    <p class="nota">Depois do pagamento, o curso aparece na sua <a href="/conta/">área do aluno</a>.</p>
+                    <p class="nota">Depois do pagamento, o curso aparece na sua <a href="/conta/">área do aluno</a>. Você pode desistir em até 7 dias e receber o valor de volta (<a href="/termos/">termos</a>).</p>
                 </aside>`;
     const conteudoDoCurso = aulas.length ? `
         <section class="secao curso__aulas">
