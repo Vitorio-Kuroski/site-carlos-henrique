@@ -5,55 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="only light">
     <meta name="robots" content="noindex">
-    <title>Painel do administrador | Carlos Henrique</title>
-    <meta name="theme-color" content="#0F3D2E">
+    <title>Painel | Carlos Henrique</title>
+    <meta name="theme-color" content="#0B2C21">
     <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="admin.css">
 </head>
-<body class="conta-pagina">
-    <header class="topo">
-        <div class="caixa topo__linha">
-            <a href="../" class="marca">Carlos Henrique<span>Accountant · Dublin</span></a>
-            <a href="../blog/" class="link-seta">Blog</a>
+<body class="adm-corpo">
+    <!-- Menu lateral (no celular, abre pelo botão ☰) -->
+    <aside class="adm-menu" id="menu" aria-label="Menu do painel">
+        <div class="adm-menu__marca">
+            <a href="../">Carlos Henrique</a>
+            <span>Painel administrativo</span>
         </div>
-    </header>
+        <nav class="adm-menu__nav">
+            <p class="adm-menu__secao">Visão geral</p>
+            <a href="#/" data-pagina="painel">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></svg>Painel
+            </a>
 
-    <main class="caixa admin" hidden id="painel">
-        <div class="admin__topo">
-            <div>
-                <p class="rotulo"><span class="rotulo__linha"></span>Administração</p>
-                <h1>Painel do <em>administrador</em></h1>
-            </div>
-            <a class="link-seta" href="../conta/">← Minha conta</a>
+            <p class="adm-menu__secao">Alunos</p>
+            <a href="#/alunos" data-pagina="alunos">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2 .8 3.5 2.8 3.5 5.7"/></svg>Alunos
+                <span class="adm-menu__contador" id="contador-novos" title="Novos nos últimos 7 dias" hidden></span>
+            </a>
+
+            <p class="adm-menu__secao">Conteúdo</p>
+            <a href="https://app.pagescms.org" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 15.5h6M9 9h2"/></svg>Blog
+                <span class="adm-menu__externo" aria-label="abre em outra aba">↗</span>
+            </a>
+
+            <p class="adm-menu__secao">Atendimento</p>
+            <a href="https://tally.so/dashboard" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/></svg>Pedidos de declaração
+                <span class="adm-menu__externo" aria-label="abre em outra aba">↗</span>
+            </a>
+        </nav>
+        <div class="adm-menu__usuario">
+            <span class="adm-avatar" id="menu-avatar">··</span>
+            <div><strong id="menu-nome">…</strong><small id="menu-email"></small></div>
+            <button type="button" id="sair" title="Sair" aria-label="Sair">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg>
+            </button>
         </div>
+    </aside>
+    <div class="adm-veu" id="veu" hidden></div>
 
-        <div class="admin__numeros">
-            <div><strong id="total">–</strong><span>alunos cadastrados</span></div>
-            <div><strong id="ultimos7">–</strong><span>novos nos últimos 7 dias</span></div>
-            <div><strong id="ultimos30">–</strong><span>novos nos últimos 30 dias</span></div>
-        </div>
+    <div class="adm-area">
+        <!-- Barra de cima -->
+        <header class="adm-barra">
+            <button type="button" class="adm-barra__menu" id="abrir-menu" aria-label="Abrir o menu" aria-controls="menu" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+            <p class="adm-barra__titulo">Painel de controle</p>
+            <a class="adm-barra__site" href="../" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg><span>Ver site</span>
+            </a>
+            <a class="adm-barra__usuario" href="../conta/" title="Minha conta">
+                <span class="adm-avatar adm-avatar--claro" id="barra-avatar">··</span>
+                <span class="adm-barra__nome" id="barra-nome"></span>
+            </a>
+        </header>
 
-        <section class="admin__lista">
-            <div class="admin__busca">
-                <h2>Alunos</h2>
-                <label class="campo"><span class="sr-only">Buscar</span>
-                    <input id="busca" type="search" placeholder="Buscar por nome ou e-mail" maxlength="100">
-                </label>
-            </div>
-            <p class="conta__erro" id="erro" role="alert" hidden></p>
-            <div class="admin__tabela">
-                <table>
-                    <thead><tr><th>Nome</th><th>E-mail</th><th>Cadastro</th><th><span class="sr-only">Ações</span></th></tr></thead>
-                    <tbody id="alunos"></tbody>
-                </table>
-            </div>
-            <p class="admin__vazio" id="vazio" hidden>Nenhum aluno encontrado.</p>
-        </section>
-    </main>
+        <main class="adm-conteudo" id="conteudo" aria-live="polite">
+            <p class="adm-carregando">Carregando…</p>
+        </main>
+    </div>
 
-    <main class="caixa conta" hidden id="negado">
+    <!-- Quem não é administrador -->
+    <main class="caixa conta" id="negado" hidden>
         <div class="conta__cartao">
             <p class="rotulo"><span class="rotulo__linha"></span>Administração</p>
             <h1>Acesso restrito</h1>
