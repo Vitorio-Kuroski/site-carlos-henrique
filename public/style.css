@@ -281,3 +281,59 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .conta__aviso--ok { background: #E4F1E8; color: #1F5A3A; }
 .conta__aviso--espera { background: #F5ECD3; color: #6B531A; }
 .conta__aviso--erro { background: #FBEDE6; color: #8A3517; }
+
+/* Aulas (etapa 3): página da aula, lista de aulas e barra de progresso */
+.barra { height: 6px; border-radius: 999px; background: var(--linha); overflow: hidden; margin-top: .6rem; }
+.barra span { display: block; height: 100%; border-radius: inherit; background: var(--verde); transition: width .4s; }
+.conta__lista .botao { margin-top: .9rem; color: var(--fundo); }
+.conta__lista .barra { max-width: 320px; }
+
+.aula { padding: 32px 0 96px; }
+.aula__grade { display: grid; gap: 40px; }
+@media (min-width: 1000px) { .aula__grade { grid-template-columns: minmax(0, 1fr) 340px; gap: 56px; align-items: start; } }
+.aula__curso { font-size: .9rem; margin-bottom: 1.2rem; }
+.aula__curso a { color: var(--suave); text-decoration: none; }
+.aula__curso a:hover { color: var(--ouro-texto); }
+.aula__video { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #0B1A14; box-shadow: 0 20px 50px -30px rgba(15, 61, 46, .55); }
+.aula__video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.aula__video--vazio { display: grid; place-items: center; color: #DCD3C0; padding: 1rem; text-align: center; }
+.aula__meta { margin-top: 1.6rem; font-size: .78rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ouro-texto); }
+.aula__titulo { margin-top: .5rem; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.aula__texto { margin-top: 1.4rem; }
+.aula__texto a { color: var(--ouro-texto); word-break: break-word; }
+.aula__acoes { margin-top: 2rem; display: grid; gap: .8rem; justify-items: start; }
+.aula__acoes .botao svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.botao--feito { background: #DFF0E5; color: #1F6B45; }
+.botao--feito:hover { background: #D2E9DA; }
+.aula__nav { margin-top: 2.4rem; padding-top: 1.4rem; border-top: 1px solid var(--linha); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; font-size: .92rem; }
+.aula__lateral { padding: 1.4rem; border-radius: 20px; background: var(--superficie); border: 1px solid var(--linha); display: grid; gap: 1.2rem; }
+@media (min-width: 1000px) { .aula__lateral { position: sticky; top: 96px; max-height: calc(100vh - 120px); overflow-y: auto; } }
+.aulas__progresso { display: grid; gap: .3rem; font-size: .9rem; }
+.aulas__progresso .botao { margin-top: .6rem; justify-content: center; }
+.aulas__aviso { margin: 0; }
+
+.aulas { display: grid; gap: 1.6rem; }
+.aulas__modulo { display: grid; gap: .4rem; }
+.aulas__nome { font-size: .72rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ouro-texto); }
+.aulas__lista { list-style: none; padding: 0; display: grid; gap: 2px; }
+.aulas__item a, .aulas__bloqueada { display: flex; align-items: center; gap: .7rem; padding: .6rem .7rem; border-radius: 10px; font-size: .92rem; text-decoration: none; }
+.aulas__item a:hover { background: var(--papel); }
+.aulas__item--atual a { background: var(--papel); font-weight: 600; }
+.aulas__bloqueada { color: var(--suave); }
+.aulas__icone { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--linha); color: var(--suave); }
+.aulas__icone svg { width: 12px; height: 12px; fill: currentColor; }
+.aulas__item--feita .aulas__icone { background: var(--verde); border-color: var(--verde); color: var(--fundo); }
+.aulas__item--feita .aulas__icone svg { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.aulas__titulo { flex: 1; min-width: 0; }
+.aulas__titulo em { font-weight: 400; color: var(--suave); }
+.aulas__tempo { flex: none; font-size: .8rem; color: var(--suave); }
+.aulas__gratis { flex: none; font-size: .72rem; font-weight: 600; padding: .2rem .55rem; border-radius: 999px; background: #F5ECD3; color: var(--ouro-texto); }
+
+/* Página de venda: conteúdo do curso */
+.curso__aulas h2 { margin-top: 1rem; font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.aulas--venda { margin-top: 2rem; max-width: 760px; }
+.aulas--venda .aulas__item a, .aulas--venda .aulas__bloqueada { padding: .85rem 1rem; background: var(--superficie); border: 1px solid var(--linha); color: var(--texto); }
+.aulas--venda .aulas__lista { gap: .5rem; }
+.curso__inclui { font-size: .92rem; font-weight: 500; }
+.curso__tem { font-family: var(--titulo); font-size: 1.6rem; line-height: 1.2; }
+.aula__texto.post__texto { padding-bottom: 0; }

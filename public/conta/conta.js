@@ -136,8 +136,28 @@ async function mostrarCursos() {
         const titulo = document.createElement("strong");
         titulo.textContent = c.titulo;
         const nota = document.createElement("span");
-        nota.textContent = "As aulas estão sendo preparadas e aparecem aqui em breve.";
         item.append(titulo, nota);
+        if (!c.aulas) {
+            nota.textContent = "As aulas estão sendo preparadas e aparecem aqui em breve.";
+        } else {
+            const pronto = c.concluidas >= c.aulas;
+            nota.textContent = pronto ? `Curso concluído · ${c.aulas} aulas` : `${c.concluidas} de ${c.aulas} aulas concluídas`;
+            const barra = document.createElement("div");
+            barra.className = "barra";
+            barra.setAttribute("role", "progressbar");
+            barra.setAttribute("aria-label", "Progresso em " + c.titulo);
+            barra.setAttribute("aria-valuemin", "0");
+            barra.setAttribute("aria-valuemax", String(c.aulas));
+            barra.setAttribute("aria-valuenow", String(c.concluidas));
+            const cheio = document.createElement("span");
+            cheio.style.width = Math.round((c.concluidas / c.aulas) * 100) + "%";
+            barra.append(cheio);
+            const ir = document.createElement("a");
+            ir.className = "botao botao--pequeno";
+            ir.href = c.continuar;
+            ir.textContent = pronto ? "Rever as aulas" : c.concluidas ? "Continuar" : "Começar o curso";
+            item.append(barra, ir);
+        }
         lista.append(item);
     }
     caixa.append(lista);

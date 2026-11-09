@@ -122,3 +122,10 @@
 .adm-selo--vermelho { background: #FBEDE6; color: #8A3517; }
 .adm-tabela--fixa tbody tr { cursor: default; }
 .adm-tabela--fixa tbody tr:hover { background: none; }
+.adm-bloco__cabeca .adm-acoes { margin-left: auto; }
+.adm-ordem { white-space: nowrap; width: 1%; }
+.adm-mini--neutro { border-color: var(--linha); color: var(--texto); padding: .25rem .55rem; }
+.adm-mini--neutro + .adm-mini--neutro { margin-left: .3rem; }
+.adm-mini--neutro:hover { background: #F7F4EC; }
+.adm-mini:disabled { opacity: .35; cursor: default; }
+.adm-tabela--aulas small { color: var(--suave); }

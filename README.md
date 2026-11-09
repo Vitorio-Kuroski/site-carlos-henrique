@@ -70,7 +70,7 @@ Etapa 1 da plataforma de cursos: alunos criam conta e entram no site.
 
 ## Cursos e vendas (Mercado Pago)
 
-Etapa 2: cursos pagos com liberação automática. As aulas em vídeo são a etapa 3.
+Etapa 2: cursos pagos com liberação automática.
 
 - **Cadastrar:** painel `/admin/` > **Cursos** > Novo curso (título, preço, endereço, resumo, descrição). Só os marcados
   como **Publicado** aparecem em `/cursos/` e podem ser comprados. As páginas `/cursos/` e `/cursos/<endereço>/` são
@@ -90,6 +90,26 @@ Etapa 2: cursos pagos com liberação automática. As aulas em vídeo são a eta
   botão de compra mostra "pagamentos indisponíveis". Não é preciso cadastrar a URL de aviso: ela vai em cada pedido.
 - **Testar no PC:** em `.dev.vars`, use o Access Token **de teste** em `MP_ACCESS_TOKEN`; `MP_API` troca o endereço da
   API (só para testes com um servidor falso).
+
+## Aulas e vídeos
+
+Etapa 3: as aulas de cada curso, com vídeo e progresso do aluno.
+
+- **Cadastrar:** painel > **Cursos** > abra o curso > **Aulas** > Nova aula. Cada aula tem título, módulo (agrupa as
+  aulas; opcional), link do vídeo, duração, texto (endereços `https://` viram links, útil para materiais) e as opções
+  **Publicada** e **Aula grátis** (amostra que qualquer pessoa assiste, com o selo "Assista grátis" na página de venda).
+  As setas ↑ ↓ mudam a ordem; "Criar e cadastrar outra" agiliza o cadastro de várias aulas.
+- **Vídeos:** o site guarda só o link e mostra o player dentro da aula. Aceita YouTube, Vimeo, Bunny Stream e
+  Cloudflare Stream (link ou só o ID). Para proteger o conteúdo pago, prefira **Vimeo** (vídeo privado com "só nos
+  domínios" `henriqueaccountant.com`) ou **Bunny Stream** / **Cloudflare Stream** com domínios permitidos; no YouTube
+  use "Não listado" (quem tiver o link consegue ver).
+- **Aluno:** `/cursos/<curso>/assistir/` abre a próxima aula não concluída; a página da aula (`/cursos/<curso>/aulas/<id>/`)
+  tem o vídeo, o texto, a lista de aulas com o progresso e "Marcar como concluída" (leva para a próxima). A área do
+  aluno mostra a barra de progresso e o botão Continuar. Páginas de aula ficam fora do Google (`noindex`).
+- **Acesso:** aulas só para quem tem o curso (comprado ou liberado) e para administradores, que também veem os
+  rascunhos. Sem login, vai para Entrar e volta; sem o curso, vai para a página de venda.
+- **Painel:** a lista de aulas mostra quantos alunos concluíram cada uma, e a ficha do aluno mostra o progresso em
+  cada curso. Código: `src/aulas.js`.
 
 ## O que trocar
 

@@ -160,8 +160,9 @@ async function paginaAluno(id, mensagem = "", tipo = "ok") {
         <section class="adm-bloco">
             <div class="adm-bloco__cabeca"><h2>Cursos (${a.cursos.length})</h2></div>
             ${a.cursos.length ? `<table class="adm-tabela adm-tabela--fixa">
-                <thead><tr><th>Curso</th><th>Liberado em</th><th>Como</th><th></th></tr></thead><tbody>
-                ${a.cursos.map((c) => `<tr><td data-rotulo="Curso">${esc(c.titulo)}</td><td data-rotulo="Liberado em">${data(c.criado_em)}</td>
+                <thead><tr><th>Curso</th><th>Progresso</th><th>Liberado em</th><th>Como</th><th></th></tr></thead><tbody>
+                ${a.cursos.map((c) => `<tr><td data-rotulo="Curso">${esc(c.titulo)}</td>
+                    <td data-rotulo="Progresso">${c.aulas ? `${c.concluidas} de ${c.aulas} aulas` : "—"}</td><td data-rotulo="Liberado em">${data(c.criado_em)}</td>
                     <td data-rotulo="Como">${c.origem === "compra" ? "Compra" : "Liberado à mão"}</td>
                     <td>${c.origem === "manual" ? `<button type="button" class="adm-mini" data-remover="${c.id}" data-titulo="${esc(c.titulo)}">Remover acesso</button>` : ""}</td></tr>`).join("")}
                 </tbody></table>` : '<p class="adm-vazio">Este aluno ainda não tem cursos.</p>'}
@@ -241,9 +242,9 @@ async function paginaCursos() {
             <a class="adm-botao adm-botao--principal" href="#/cursos/novo">+ Novo curso</a></div></div>
         <section class="adm-bloco">
             ${cursos.length ? `<table class="adm-tabela">
-                <thead><tr><th>Curso</th><th>Preço</th><th>Alunos</th><th>Situação</th><th></th></tr></thead><tbody>
+                <thead><tr><th>Curso</th><th>Preço</th><th>Aulas</th><th>Alunos</th><th>Situação</th><th></th></tr></thead><tbody>
                 ${cursos.map((c) => `<tr data-curso="${c.id}" tabindex="0"><td data-rotulo="Curso">${esc(c.titulo)}</td><td data-rotulo="Preço">${esc(c.preco)}</td>
-                    <td data-rotulo="Alunos">${c.alunos}</td>
+                    <td data-rotulo="Aulas">${c.aulas}</td><td data-rotulo="Alunos">${c.alunos}</td>
                     <td>${c.publicado ? '<span class="adm-selo adm-selo--verde">Publicado</span>' : '<span class="adm-selo adm-selo--cinza">Rascunho</span>'}</td>
                     <td class="adm-seta" aria-hidden="true">→</td></tr>`).join("")}
                 </tbody></table>` : '<p class="adm-vazio">Nenhum curso ainda. Toque em "Novo curso" para criar o primeiro.</p>'}
@@ -287,7 +288,9 @@ async function paginaCursoForm(id, mensagem = "", tipo = "ok") {
                 <p class="conta__erro" id="erro-curso" role="alert" hidden></p>
                 <div class="adm-form__acoes"><button type="submit" class="adm-botao adm-botao--principal">${novo ? "Criar curso" : "Salvar"}</button></div>
             </form>
-        </section>`;
+        </section>
+        ${novo ? "" : '<section class="adm-bloco" id="bloco-aulas"><p class="adm-vazio">Carregando as aulas…</p></section>'}`;
+    if (!novo) await blocoAulas(c);
     const form = document.getElementById("form-curso");
     let slugManual = !novo;
     form.slug.addEventListener("input", () => { slugManual = true; document.getElementById("previa-slug").textContent = form.slug.value || "…"; });
@@ -316,6 +319,122 @@ async function paginaCursoForm(id, mensagem = "", tipo = "ok") {
             erro.textContent = falha.message;
             erro.hidden = false;
             botao.disabled = false;
+        }
+    });
+}
+
+// Aulas do curso, dentro da página de editar curso: lista, ordem (subir/descer) e link para editar
+async function blocoAulas(curso) {
+    const bloco = document.getElementById("bloco-aulas");
+    const { aulas } = await api(`/api/admin/cursos/${curso.id}/aulas`);
+    bloco.innerHTML = `
+        <div class="adm-bloco__cabeca"><h2>Aulas (${aulas.length})</h2>
+            <div class="adm-acoes">${aulas.length ? `<a class="adm-botao" href="/cursos/${esc(curso.slug)}/assistir/" target="_blank" rel="noopener">Ver como aluno</a>` : ""}
+            <a class="adm-botao adm-botao--principal" href="#/cursos/${curso.id}/aulas/nova">+ Nova aula</a></div></div>
+        ${aulas.length ? `<table class="adm-tabela adm-tabela--aulas">
+            <thead><tr><th>Ordem</th><th>Aula</th><th>Vídeo</th><th>Duração</th><th>Concluíram</th><th></th></tr></thead><tbody>
+            ${aulas.map((a, i) => `<tr data-aula="${a.id}" tabindex="0">
+                <td class="adm-ordem"><button type="button" class="adm-mini adm-mini--neutro" data-mover="-1" aria-label="Subir ${esc(a.titulo)}" ${i ? "" : "disabled"}>↑</button><button type="button" class="adm-mini adm-mini--neutro" data-mover="1" aria-label="Descer ${esc(a.titulo)}" ${i < aulas.length - 1 ? "" : "disabled"}>↓</button></td>
+                <td data-rotulo="Aula"><strong>${i + 1}. ${esc(a.titulo)}</strong>${a.modulo ? `<br><small>${esc(a.modulo)}</small>` : ""}
+                    ${a.gratis ? ' <span class="adm-selo adm-selo--ouro">Grátis</span>' : ""}${a.publicado ? "" : ' <span class="adm-selo adm-selo--cinza">Rascunho</span>'}</td>
+                <td data-rotulo="Vídeo">${a.video ? "Sim" : '<span class="adm-selo adm-selo--vermelho">Sem vídeo</span>'}</td>
+                <td data-rotulo="Duração">${a.duracao_min ? `${a.duracao_min} min` : "—"}</td>
+                <td data-rotulo="Concluíram">${a.concluiram}</td>
+                <td class="adm-seta" aria-hidden="true">→</td></tr>`).join("")}
+            </tbody></table>` : '<p class="adm-vazio">Nenhuma aula ainda. Toque em "Nova aula" para cadastrar a primeira.</p>'}`;
+    bloco.querySelectorAll("tr[data-aula]").forEach((tr) => {
+        const abrir = () => { location.hash = `#/cursos/${curso.id}/aulas/${tr.dataset.aula}`; };
+        tr.addEventListener("click", (e) => { if (!e.target.closest("button")) abrir(); });
+        tr.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === tr) abrir(); });
+    });
+    bloco.querySelectorAll("[data-mover]").forEach((botao) => botao.addEventListener("click", async () => {
+        const ids = aulas.map((a) => a.id);
+        const i = ids.indexOf(Number(botao.closest("tr").dataset.aula));
+        const j = i + Number(botao.dataset.mover);
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        bloco.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+        try {
+            await api(`/api/admin/cursos/${curso.id}/aulas/ordem`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
+        } catch (falha) {
+            alert(falha.message);
+        }
+        await blocoAulas(curso);
+        bloco.querySelector(`tr[data-aula="${ids[j]}"] [data-mover="${botao.dataset.mover}"]`)?.focus();
+    }));
+}
+
+async function paginaAulaForm(cursoId, id, mensagem = "", tipo = "ok") {
+    const nova = id === "nova";
+    titulo.textContent = nova ? "Nova aula" : "Editar aula";
+    const [{ cursos }, { aulas }] = await Promise.all([api("/api/admin/cursos"), api(`/api/admin/cursos/${cursoId}/aulas`)]);
+    const curso = cursos.find((c) => c.id === Number(cursoId));
+    if (!curso) throw new Error("Curso não encontrado.");
+    const ultima = aulas[aulas.length - 1];
+    const a = nova ? { modulo: ultima?.modulo || "", titulo: "", video: "", duracao_min: "", descricao: "", gratis: 0, publicado: 1 }
+        : aulas.find((x) => x.id === Number(id));
+    if (!a) throw new Error("Aula não encontrada.");
+    const modulos = [...new Set(aulas.map((x) => x.modulo).filter(Boolean))];
+    conteudo.innerHTML = `
+        ${aviso(mensagem, tipo)}
+        <div class="adm-cabeca"><h1>${nova ? "Nova aula" : esc(a.titulo)}<small>${esc(curso.titulo)}</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="#/cursos/${curso.id}">${ICONES.voltar}Voltar ao curso</a>
+            ${nova ? "" : `<a class="adm-botao" href="/cursos/${esc(curso.slug)}/aulas/${a.id}/" target="_blank" rel="noopener">Ver a aula</a>
+            <button type="button" class="adm-botao adm-botao--perigo" id="apagar-aula">${ICONES.lixo}Apagar aula</button>`}</div></div>
+        <section class="adm-bloco">
+            <form class="adm-form" id="form-aula" novalidate>
+                <div class="adm-form__linha">
+                    <label class="campo">Título da aula<input name="titulo" required maxlength="160" value="${esc(a.titulo)}"></label>
+                    <label class="campo">Módulo <span class="adm-form__dica">opcional, agrupa as aulas</span>
+                        <input name="modulo" maxlength="120" list="modulos" placeholder="Ex.: Módulo 1 · Primeiros passos" value="${esc(a.modulo)}"></label>
+                    <datalist id="modulos">${modulos.map((m) => `<option value="${esc(m)}">`).join("")}</datalist>
+                </div>
+                <div class="adm-form__linha">
+                    <label class="campo">Link do vídeo <span class="adm-form__dica">YouTube (não listado), Vimeo, Bunny Stream ou Cloudflare Stream</span>
+                        <input name="video" maxlength="500" inputmode="url" placeholder="https://vimeo.com/123456789" value="${esc(a.video)}"></label>
+                    <label class="campo">Duração (minutos)<input name="duracao_min" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${a.duracao_min || ""}"></label>
+                </div>
+                <label class="campo">Texto da aula <span class="adm-form__dica">resumo, exercícios, links de materiais (endereços https:// viram links). Linha em branco separa parágrafos; "- " vira lista.</span>
+                    <textarea name="descricao" maxlength="20000">${esc(a.descricao)}</textarea></label>
+                <label class="adm-check"><input type="checkbox" name="publicado" ${a.publicado ? "checked" : ""}> Publicada (os alunos do curso já veem)</label>
+                <label class="adm-check"><input type="checkbox" name="gratis" ${a.gratis ? "checked" : ""}> Aula grátis (qualquer pessoa pode assistir, como amostra na página de venda)</label>
+                <p class="conta__erro" id="erro-aula" role="alert" hidden></p>
+                <div class="adm-form__acoes"><button type="submit" class="adm-botao adm-botao--principal">${nova ? "Criar aula" : "Salvar"}</button>
+                    ${nova ? '<button type="submit" class="adm-botao" data-outra>Criar e cadastrar outra</button>' : ""}</div>
+            </form>
+        </section>`;
+    const form = document.getElementById("form-aula");
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const outra = e.submitter?.hasAttribute("data-outra");
+        const erro = document.getElementById("erro-aula");
+        erro.hidden = true;
+        const botoes = form.querySelectorAll("button[type=submit]");
+        botoes.forEach((b) => { b.disabled = true; });
+        try {
+            const corpo = {
+                titulo: form.titulo.value, modulo: form.modulo.value, video: form.video.value, descricao: form.descricao.value,
+                duracao_min: Number(form.duracao_min.value || 0), gratis: form.gratis.checked, publicado: form.publicado.checked,
+            };
+            if (!Number.isInteger(corpo.duracao_min)) throw new Error("Duração: use só números (minutos).");
+            const r = await api(nova ? `/api/admin/cursos/${curso.id}/aulas` : `/api/admin/aulas/${id}`, {
+                method: nova ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
+            });
+            if (outra) await paginaAulaForm(cursoId, "nova", `Aula "${corpo.titulo}" criada. Cadastre a próxima.`, "ok");
+            else if (nova) location.hash = `#/cursos/${curso.id}/aulas/${r.id}`;
+            else await paginaAulaForm(cursoId, id, "Aula salva.", "ok");
+        } catch (falha) {
+            erro.textContent = falha.message;
+            erro.hidden = false;
+            botoes.forEach((b) => { b.disabled = false; });
+        }
+    });
+    document.getElementById("apagar-aula")?.addEventListener("click", async () => {
+        if (!confirm(`Apagar a aula "${a.titulo}"? O progresso dos alunos nela também é apagado.`)) return;
+        try {
+            await api(`/api/admin/aulas/${a.id}`, { method: "DELETE" });
+            location.hash = `#/cursos/${curso.id}`;
+        } catch (falha) {
+            await paginaAulaForm(cursoId, id, falha.message, "erro");
         }
     });
 }
@@ -356,6 +475,7 @@ async function mostrar() {
     const caminho = location.hash.replace(/^#/, "") || "/";
     const aluno = /^\/alunos\/(\d+)$/.exec(caminho);
     const curso = /^\/cursos\/(novo|\d+)$/.exec(caminho);
+    const aula = /^\/cursos\/(\d+)\/aulas\/(nova|\d+)$/.exec(caminho);
     const pagina = aluno || caminho.startsWith("/alunos") ? "alunos"
         : caminho.startsWith("/cursos") ? "cursos" : caminho.startsWith("/vendas") ? "vendas" : "painel";
     document.querySelectorAll(".adm-menu__nav a[data-pagina]").forEach((a) => a.classList.toggle("ativo", a.dataset.pagina === pagina));
@@ -364,6 +484,7 @@ async function mostrar() {
         if (aluno) await paginaAluno(aluno[1]);
         else if (caminho === "/alunos") await paginaAlunos();
         else if (curso) await paginaCursoForm(curso[1]);
+        else if (aula) await paginaAulaForm(aula[1], aula[2]);
         else if (caminho === "/cursos") await paginaCursos();
         else if (caminho === "/vendas") await paginaVendas();
         else await paginaPainel();
