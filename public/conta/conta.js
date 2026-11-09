@@ -61,6 +61,7 @@ async function areaDoAluno() {
     document.getElementById("email").textContent = aluno.email;
     mostrarCursos();
     conferirPedido();
+    mostrarNaoLidas();
     document.getElementById("sair").addEventListener("click", async () => {
         await fetch("/api/conta/sair", { method: "POST" });
         location.href = "/";
@@ -190,4 +191,118 @@ async function conferirPedido() {
         aviso.hidden = false;
         if (pedido.status === "aprovado") mostrarCursos();
     } catch {}
+}
+
+// ---------- Mensagens ----------
+
+// Respostas não lidas, no atalho "Mensagens" da área do aluno
+async function mostrarNaoLidas() {
+    try {
+        const { nao_lidas: n } = await (await fetch("/api/conta/mensagens/novas")).json();
+        const selo = document.getElementById("nao-lidas");
+        selo.textContent = n === 1 ? "1 nova" : `${n} novas`;
+        selo.hidden = !n;
+    } catch { /* sem aviso, sem problema */ }
+}
+
+// Texto da mensagem com os endereços https:// clicáveis (sem HTML vindo do servidor)
+function textoComLinks(texto) {
+    const fragmento = document.createDocumentFragment();
+    let ultimo = 0;
+    for (const achado of texto.matchAll(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g)) {
+        fragmento.append(texto.slice(ultimo, achado.index));
+        const a = document.createElement("a");
+        a.href = achado[0];
+        a.textContent = achado[0];
+        a.target = "_blank";
+        a.rel = "noopener";
+        fragmento.append(a);
+        ultimo = achado.index + achado[0].length;
+    }
+    fragmento.append(texto.slice(ultimo));
+    return fragmento;
+}
+
+function horario(data) {
+    const d = new Date(data.replace(" ", "T") + "Z");
+    const hoje = new Date().toDateString() === d.toDateString();
+    return hoje ? d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+        : d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+async function paginaMensagens() {
+    const lista = document.getElementById("conversa");
+    const form = document.getElementById("form-mensagem");
+    const campo = document.getElementById("texto");
+    const erro = document.getElementById("erro");
+    let ultimoId = -1;
+
+    function desenhar(mensagens) {
+        const ultimo = mensagens.length ? mensagens[mensagens.length - 1].id : 0;
+        if (ultimo === ultimoId) return;
+        ultimoId = ultimo;
+        lista.innerHTML = "";
+        if (!mensagens.length) {
+            const vazio = document.createElement("p");
+            vazio.className = "chat__vazio";
+            vazio.textContent = "Nenhuma mensagem ainda. Escreva a primeira abaixo.";
+            lista.append(vazio);
+            return;
+        }
+        for (const m of mensagens) {
+            const balao = document.createElement("div");
+            balao.className = "chat__msg " + (m.de_admin ? "chat__msg--deles" : "chat__msg--minha");
+            const autor = document.createElement("p");
+            autor.className = "chat__autor";
+            autor.textContent = (m.de_admin ? m.autor : "Você") + " · " + horario(m.criado_em);
+            const texto = document.createElement("p");
+            texto.className = "chat__texto";
+            texto.append(textoComLinks(m.texto));
+            balao.append(autor, texto);
+            lista.append(balao);
+        }
+        lista.scrollTop = lista.scrollHeight;
+    }
+
+    async function carregar() {
+        const resposta = await fetch("/api/conta/mensagens");
+        if (resposta.status === 401) {
+            location.replace("/conta/entrar/?voltar=" + encodeURIComponent(location.pathname));
+            return;
+        }
+        desenhar((await resposta.json()).mensagens || []);
+    }
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const botao = form.querySelector("button");
+        erro.hidden = true;
+        botao.disabled = true;
+        try {
+            const resposta = await fetch("/api/conta/mensagens", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ texto: campo.value }),
+            });
+            const dados = await resposta.json().catch(() => ({}));
+            if (!resposta.ok) throw new Error(dados.erro || "Não foi possível enviar. Tente de novo.");
+            campo.value = "";
+            await carregar();
+        } catch (falha) {
+            erro.textContent = falha.message === "Failed to fetch" ? "Sem conexão. Tente de novo." : falha.message;
+            erro.hidden = false;
+        } finally {
+            botao.disabled = false;
+            campo.focus();
+        }
+    });
+    // Ctrl+Enter (ou Cmd+Enter) envia; Enter sozinho pula linha
+    campo.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) form.requestSubmit();
+    });
+
+    await carregar();
+    // Confere respostas novas a cada 15 segundos enquanto a página está aberta e visível
+    setInterval(() => { if (!document.hidden) carregar().catch(() => {}); }, 15000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) carregar().catch(() => {}); });
 }

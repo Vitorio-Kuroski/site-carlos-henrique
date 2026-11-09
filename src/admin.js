@@ -21,6 +21,7 @@
 import { alunoLogado, ehAdmin, garantirTabelas, json, listaAdmins, mandarLinkSenha } from "./alunos.js";
 import { playerDoVideo } from "./aulas.js";
 import { garantirTabelasCursos, reais } from "./cursos.js";
+import { garantirTabelasMensagens } from "./mensagens.js";
 
 const COLUNAS = "id, nome, email, criado_em, ultimo_acesso";
 
@@ -34,6 +35,7 @@ export async function rotasAdmin(request, env) {
     }
     await garantirTabelas(env.DB);
     await garantirTabelasCursos(env.DB);
+    await garantirTabelasMensagens(env.DB);
     const eu = await alunoLogado(request, env);
     if (!eu) return json({ erro: "Não está logado." }, 401);
     if (!ehAdmin(env, eu.email)) return json({ erro: "Acesso só para administradores." }, 403);
@@ -136,6 +138,7 @@ export async function rotasAdmin(request, env) {
             db.prepare("DELETE FROM sessoes WHERE aluno_id = ?").bind(id),
             db.prepare("DELETE FROM redefinicoes WHERE aluno_id = ?").bind(id),
             db.prepare("DELETE FROM matriculas WHERE aluno_id = ?").bind(id),
+            db.prepare("DELETE FROM mensagens WHERE aluno_id = ?").bind(id),
             db.prepare("DELETE FROM pedidos WHERE aluno_id = ? AND status != 'aprovado'").bind(id),
             db.prepare("DELETE FROM alunos WHERE id = ?").bind(id),
         ]);

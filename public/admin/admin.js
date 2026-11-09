@@ -10,6 +10,7 @@ const ICONES = {
     chave: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/></svg>',
     lixo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
     voltar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+    mensagem: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>',
 };
 
 // Texto do usuário entra sempre escapado
@@ -143,6 +144,7 @@ async function paginaAluno(id, mensagem = "", tipo = "ok") {
             <h1>Aluno #${a.id}<small>${esc(a.nome)}</small></h1>
             <div class="adm-acoes">
                 <a class="adm-botao" href="#/alunos">${ICONES.voltar}Voltar</a>
+                <a class="adm-botao" href="#/mensagens/${a.id}">${ICONES.mensagem}Mensagens</a>
                 <a class="adm-botao" href="mailto:${esc(a.email)}">${ICONES.email}Mandar e-mail</a>
                 <button type="button" class="adm-botao adm-botao--principal" id="senha">${ICONES.chave}Enviar link de senha nova</button>
                 ${a.admin ? "" : `<button type="button" class="adm-botao adm-botao--perigo" id="apagar">${ICONES.lixo}Apagar conta</button>`}
@@ -463,6 +465,113 @@ async function paginaVendas() {
         </section>`;
 }
 
+// ---------- Mensagens ----------
+
+// Texto já escapado, com os endereços https:// clicáveis
+function comLinks(texto) {
+    return esc(texto).replace(/https:\/\/[^\s<]+[^\s<.,;:!?)]/g, (link) => `<a href="${link}" target="_blank" rel="noopener">${link}</a>`);
+}
+
+let tituloBase = document.title;
+let pararConversa = null;
+
+async function atualizarMensagens() {
+    try {
+        const { nao_lidas: n } = await api("/api/admin/mensagens/nao-lidas");
+        const contador = document.getElementById("contador-mensagens");
+        contador.textContent = n > 99 ? "99+" : n;
+        contador.hidden = !n;
+        document.title = n ? `(${n}) ${tituloBase}` : tituloBase;
+    } catch { /* tenta de novo na próxima */ }
+}
+
+async function paginaMensagens() {
+    titulo.textContent = "Mensagens";
+    const { conversas } = await api("/api/admin/mensagens");
+    conteudo.innerHTML = `
+        <div class="adm-cabeca"><h1>Mensagens<small>Conversas com os alunos. Você e os outros administradores veem e respondem.</small></h1></div>
+        <section class="adm-bloco">
+            ${conversas.length ? `<ul class="adm-conversas">${conversas.map((c) => `
+                <li><a href="#/mensagens/${c.aluno_id}" class="${c.nao_lidas ? "nao-lida" : ""}">
+                    <span class="adm-avatar" aria-hidden="true">${esc(iniciais(c.nome))}</span>
+                    <span class="adm-conversas__texto"><strong>${esc(c.nome)}</strong>
+                        <span>${c.de_admin ? `${esc(c.autor)}: ` : ""}${esc(c.texto.slice(0, 140))}</span></span>
+                    <span class="adm-conversas__lado"><small>${data(c.criado_em, true)}</small>
+                        ${c.nao_lidas ? `<span class="adm-menu__contador">${c.nao_lidas}</span>` : ""}</span>
+                </a></li>`).join("")}</ul>`
+                : '<p class="adm-vazio">Nenhuma mensagem ainda. Quando um aluno escrever pela área do aluno, a conversa aparece aqui. Para puxar conversa, abra a ficha do aluno e toque em "Mensagens".</p>'}
+        </section>`;
+    atualizarMensagens();
+}
+
+async function paginaConversa(alunoId) {
+    titulo.textContent = "Mensagens";
+    let ultimoId = -1;
+    const desenhar = (mensagens) => {
+        const lista = document.getElementById("conversa");
+        const ultimo = mensagens.length ? mensagens[mensagens.length - 1].id : 0;
+        if (!lista || ultimo === ultimoId) return;
+        ultimoId = ultimo;
+        lista.innerHTML = mensagens.length ? mensagens.map((m) => `
+            <div class="adm-msg ${m.de_admin ? "adm-msg--nossa" : "adm-msg--aluno"}">
+                <p class="adm-msg__autor">${esc(m.autor)} · ${data(m.criado_em, true)}${m.de_admin ? (m.lida_em ? " · lida" : " · não lida") : ""}</p>
+                <p class="adm-msg__texto">${comLinks(m.texto)}</p>
+            </div>`).join("") : '<p class="adm-vazio">Nenhuma mensagem ainda. Escreva a primeira abaixo.</p>';
+        lista.scrollTop = lista.scrollHeight;
+    };
+    const { aluno, mensagens } = await api(`/api/admin/mensagens/${alunoId}`);
+    conteudo.innerHTML = `
+        <div class="adm-cabeca"><h1>${esc(aluno.nome)}<small>${esc(aluno.email)}</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="#/mensagens">${ICONES.voltar}Todas as conversas</a>
+            <a class="adm-botao" href="#/alunos/${aluno.id}">Ficha do aluno</a></div></div>
+        <section class="adm-bloco adm-chat">
+            <div class="adm-chat__lista" id="conversa"></div>
+            <form class="adm-chat__form" id="form-resposta" novalidate>
+                <label class="sr-only" for="resposta">Resposta</label>
+                <textarea id="resposta" rows="3" maxlength="4000" placeholder="Escreva a resposta… (Ctrl+Enter envia)"></textarea>
+                <p class="conta__erro" id="erro-resposta" role="alert" hidden></p>
+                <p class="adm-chat__nota" id="nota-resposta" role="status"></p>
+                <button type="submit" class="adm-botao adm-botao--principal">Enviar</button>
+            </form>
+        </section>`;
+    desenhar(mensagens);
+    atualizarMensagens();
+    const form = document.getElementById("form-resposta");
+    const campo = document.getElementById("resposta");
+    campo.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) form.requestSubmit(); });
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const erro = document.getElementById("erro-resposta");
+        const nota = document.getElementById("nota-resposta");
+        const botao = form.querySelector("button");
+        erro.hidden = true;
+        botao.disabled = true;
+        try {
+            const r = await api(`/api/admin/mensagens/${alunoId}`, {
+                method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texto: campo.value }),
+            });
+            campo.value = "";
+            nota.textContent = r.email === "enviado" ? "Enviada. O aluno recebeu um aviso por e-mail."
+                : r.email === "sem_chave" ? "Enviada. (O aviso por e-mail ainda não está configurado: falta o RESEND_API_KEY.)"
+                : r.email === "falhou" ? "Enviada, mas o aviso por e-mail falhou. O aluno vê a resposta quando entrar no site."
+                : "Enviada.";
+            desenhar((await api(`/api/admin/mensagens/${alunoId}`)).mensagens);
+        } catch (falha) {
+            erro.textContent = falha.message;
+            erro.hidden = false;
+        } finally {
+            botao.disabled = false;
+            campo.focus();
+        }
+    });
+    // Mensagens novas do aluno aparecem sozinhas enquanto a conversa está aberta
+    const timer = setInterval(async () => {
+        if (document.hidden) return;
+        try { desenhar((await api(`/api/admin/mensagens/${alunoId}`)).mensagens); atualizarMensagens(); } catch { /* próxima */ }
+    }, 10000);
+    pararConversa = () => clearInterval(timer);
+}
+
 // ---------- Navegação e menu ----------
 
 function atualizarContador(novos) {
@@ -476,7 +585,10 @@ async function mostrar() {
     const aluno = /^\/alunos\/(\d+)$/.exec(caminho);
     const curso = /^\/cursos\/(novo|\d+)$/.exec(caminho);
     const aula = /^\/cursos\/(\d+)\/aulas\/(nova|\d+)$/.exec(caminho);
-    const pagina = aluno || caminho.startsWith("/alunos") ? "alunos"
+    const conversa = /^\/mensagens\/(\d+)$/.exec(caminho);
+    pararConversa?.();
+    pararConversa = null;
+    const pagina = caminho.startsWith("/mensagens") ? "mensagens" : aluno || caminho.startsWith("/alunos") ? "alunos"
         : caminho.startsWith("/cursos") ? "cursos" : caminho.startsWith("/vendas") ? "vendas" : "painel";
     document.querySelectorAll(".adm-menu__nav a[data-pagina]").forEach((a) => a.classList.toggle("ativo", a.dataset.pagina === pagina));
     abrirMenu(false);
@@ -487,6 +599,8 @@ async function mostrar() {
         else if (aula) await paginaAulaForm(aula[1], aula[2]);
         else if (caminho === "/cursos") await paginaCursos();
         else if (caminho === "/vendas") await paginaVendas();
+        else if (conversa) await paginaConversa(conversa[1]);
+        else if (caminho === "/mensagens") await paginaMensagens();
         else await paginaPainel();
         scrollTo(0, 0);
     } catch (falha) {
@@ -526,4 +640,7 @@ document.getElementById("sair").addEventListener("click", async () => {
     }
     addEventListener("hashchange", mostrar);
     await mostrar();
+    // Aviso de mensagens novas no menu e no título da aba, conferido a cada 30 segundos
+    atualizarMensagens();
+    setInterval(() => { if (!document.hidden) atualizarMensagens(); }, 30000);
 })();

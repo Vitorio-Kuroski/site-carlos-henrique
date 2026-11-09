@@ -223,19 +223,19 @@ async function enviarEmailSenha(env, aluno, link) {
     const texto = `Olá, ${primeiro}!\n\nRecebemos um pedido para criar uma senha nova na sua conta do site do Carlos Henrique.\n\n` +
         `Crie a senha nova por este link (vale por 1 hora e uma vez só):\n${link}\n\n` +
         "Se não foi você que pediu, é só ignorar este e-mail: a sua senha continua a mesma.";
+    return enviarEmail(env, { para: [aluno.email], assunto: "Crie uma senha nova", html, texto });
+}
+
+// Envia um e-mail pelo Resend. Devolve "enviado", "sem_chave" ou "falhou".
+export async function enviarEmail(env, { para, assunto, html, texto }) {
+    if (!env.RESEND_API_KEY) return "sem_chave";
     const resposta = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-            from: env.EMAIL_REMETENTE || REMETENTE_PADRAO,
-            to: [aluno.email],
-            subject: "Crie uma senha nova",
-            html,
-            text: texto,
-        }),
+        body: JSON.stringify({ from: env.EMAIL_REMETENTE || REMETENTE_PADRAO, to: para, subject: assunto, html, text: texto }),
     });
     if (!resposta.ok) {
-        console.error("Falha ao enviar o e-mail de senha nova:", resposta.status, await resposta.text());
+        console.error("Falha ao enviar e-mail:", assunto, resposta.status, await resposta.text());
         return "falhou";
     }
     return "enviado";
