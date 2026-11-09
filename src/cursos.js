@@ -294,6 +294,8 @@ async function mp(env, caminho, opcoes = {}) {
 async function comprar(request, env) {
     const aluno = await alunoLogado(request, env);
     if (!aluno) return json({ erro: "Entre na sua conta para comprar." }, 401);
+    // Administrador já vê todos os cursos e aulas; não compra nem aparece nas vendas
+    if (ehAdmin(env, aluno.email)) return json({ erro: "Administradores já têm acesso a todos os cursos.", ja_tem: true }, 409);
     if (!env.MP_ACCESS_TOKEN) return json({ erro: "As compras ainda não estão abertas. Tente de novo mais tarde." }, 503);
     let dados;
     try { dados = await request.json(); } catch { return json({ erro: "Dados inválidos." }, 400); }

@@ -18,7 +18,7 @@
 //   PUT    /api/admin/aulas/<id>             altera uma aula
 //   DELETE /api/admin/aulas/<id>             apaga uma aula (e o progresso dos alunos nela)
 //   GET    /api/admin/vendas                 pedidos (mais recentes primeiro) e os totais
-import { alunoLogado, ehAdmin, garantirTabelas, json, mandarLinkSenha } from "./alunos.js";
+import { alunoLogado, ehAdmin, garantirTabelas, json, listaAdmins, mandarLinkSenha } from "./alunos.js";
 import { playerDoVideo } from "./aulas.js";
 import { garantirTabelasCursos, reais } from "./cursos.js";
 
@@ -40,6 +40,9 @@ export async function rotasAdmin(request, env) {
 
     const db = env.DB;
     const comAdmin = (a) => ({ ...a, admin: ehAdmin(env, a.email) });
+    // Administradores não contam como alunos: ficam fora dos números e da lista de alunos
+    const admins = JSON.stringify(listaAdmins(env));
+    const SO_ALUNOS = "lower(email) NOT IN (SELECT value FROM json_each(?))";
 
     if (url.pathname === "/api/admin/eu" && metodo === "GET") {
         return json({ nome: eu.nome, email: eu.email });
@@ -53,8 +56,8 @@ export async function rotasAdmin(request, env) {
                         SUM(criado_em >= datetime('now', '-7 days')) AS ultimos7,
                         SUM(criado_em >= datetime('now', '-30 days')) AS ultimos30,
                         SUM(ultimo_acesso >= datetime('now', '-7 days')) AS ativos7
-                 FROM alunos`),
-            db.prepare(`SELECT ${COLUNAS} FROM alunos ORDER BY id DESC LIMIT 8`),
+                 FROM alunos WHERE ${SO_ALUNOS}`).bind(admins),
+            db.prepare(`SELECT ${COLUNAS} FROM alunos WHERE ${SO_ALUNOS} ORDER BY id DESC LIMIT 8`).bind(admins),
             db.prepare(
                 `SELECT COUNT(*) AS vendas_mes, COALESCE(SUM(valor_centavos), 0) AS receita_mes FROM pedidos
                  WHERE status = 'aprovado' AND pago_em >= datetime('now', 'start of month')`),
@@ -73,8 +76,8 @@ export async function rotasAdmin(request, env) {
         const filtro = `%${busca.replace(/[%_\\]/g, "\\$&")}%`;
         const { results } = await db.prepare(
             `SELECT ${COLUNAS} FROM alunos
-             WHERE ? = '' OR nome LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'
-             ORDER BY id DESC LIMIT 500`).bind(busca, filtro, filtro).all();
+             WHERE ${SO_ALUNOS} AND (? = '' OR nome LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\')
+             ORDER BY id DESC LIMIT 500`).bind(admins, busca, filtro, filtro).all();
         return json({ alunos: results.map(comAdmin) });
     }
 
