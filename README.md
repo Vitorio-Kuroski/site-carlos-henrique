@@ -37,6 +37,8 @@ são montadas pelo Worker (`src/blog.js`), então publicar coloca o post no ar n
   da página ou trocar de aplicativo). Post já publicado não muda sozinho: as mudanças ficam guardadas no aparelho até
   "Salvar alterações". Uma cópia sempre fica no aparelho; se a aba fechar ou a internet cair, o post oferece
   **Recuperar** quando for aberto de novo.
+- **Página inicial:** a seção "Últimos posts" (PT e EN) mostra os 3 posts publicados mais recentes; o Worker coloca
+  os cartões no HTML (`comUltimosPosts` em `src/blog.js`), e sem posts a seção some.
 - Páginas: `/blog/` (lista), `/blog/<endereço>/` (post, com dados para o Google) e `/blog/sitemap.xml`.
   O blog é só em português.
 

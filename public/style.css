@@ -433,3 +433,11 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .menu-celular__extra { color: var(--suave) !important; font-size: .95rem !important; }
 .menu-celular a:last-child { border-bottom: 0; }
 @media (min-width: 900px) { .menu-celular { display: none; } }
+
+/* Página inicial: últimos posts do blog */
+.cabeca--com-acao { max-width: none; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem 2rem; }
+.cabeca--com-acao h2 { max-width: 18ch; }
+.posts--home { margin-top: 2.4rem; }
+@media (min-width: 960px) { .posts--home { grid-template-columns: repeat(3, 1fr); } .posts--home .post-cartao h2 { font-size: 1.45rem; } }
+.posts--home .post-cartao__texto { flex: 1; display: flex; flex-direction: column; }
+.posts--home .opcao__link { margin-top: auto; padding-top: 1.2rem; align-self: flex-start; }

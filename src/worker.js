@@ -16,7 +16,7 @@ import { rotasAdmin } from "./admin.js";
 import { rotasConta } from "./alunos.js";
 import { rotasCursos } from "./cursos.js";
 import { rotasMensagens } from "./mensagens.js";
-import { rotasBlog } from "./blog.js";
+import { comUltimosPosts, rotasBlog } from "./blog.js";
 import { rotasDeclaracoes } from "./declaracoes.js";
 import { rotasLegal } from "./legal.js";
 
@@ -48,6 +48,9 @@ export default {
                 return Response.redirect(new URL("/en/" + url.search, url).toString(), 302);
             }
         }
-        return env.ASSETS.fetch(request);
+        const resposta = await env.ASSETS.fetch(request);
+        // Página inicial (PT e EN): coloca os últimos posts do blog
+        if (/^\/(en\/)?(index\.html)?$/.test(url.pathname) && request.method === "GET") return comUltimosPosts(resposta, env);
+        return resposta;
     },
 };
