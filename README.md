@@ -23,22 +23,18 @@ Os caminhos na página são relativos (`style.css`, `img/carlos.jpg`, `en/`), pa
 
 ## Blog
 
-Os posts ficam em `content/blog/` (um arquivo Markdown por post) e são escritos pelo painel do **Pages CMS**
-(https://app.pagescms.org), configurado em `.pages.yml`. Ao publicar pelo painel:
+O blog é escrito e publicado pelo painel: `/admin/` > **Blog**. Os posts e as imagens ficam no banco D1 e as páginas
+são montadas pelo Worker (`src/blog.js`), então publicar coloca o post no ar na hora, sem GitHub nem outro serviço.
 
-1. o post é salvo em `content/blog/` (e as imagens em `public/img/blog/`);
-2. o GitHub Actions (`.github/workflows/blog.yml`) roda `tools/gerar_blog.py` e salva as páginas em `public/blog/`;
-3. o Cloudflare publica: lista em `/blog/`, cada post em `/blog/<nome-do-post>/`.
-
-Post marcado como **Rascunho** não aparece no site. Para gerar no PC: `pip install -r tools/requirements.txt`
-e `python tools/gerar_blog.py`. O blog é só em português.
-
-### Configurar o painel (uma vez)
-
-1. Entre em https://app.pagescms.org com a conta do GitHub dona do repositório e instale o app
-   **Pages CMS** só no repositório `site-carlos-henrique`.
-2. Abra o repositório no painel e, em **Collaborators**, convide o Carlos pelo e-mail.
-   Ele entra pelo link do e-mail, sem conta no GitHub, e só vê o blog.
+- **Escrever:** título, endereço (gerado do título), resumo (aparece no Google e na lista), imagem de capa e o texto.
+  A barra do editor tem negrito, itálico, título, subtítulo, listas, link, citação e imagem; a aba **Prévia** mostra o
+  post como vai ficar no site (o painel e o site usam o mesmo conversor, `public/admin/markdown.js`).
+- **Imagens:** enviadas do celular ou do computador; o navegador reduz para no máximo 1600 px (WebP) antes de enviar.
+  Ficam no D1 e são servidas em `/imagens/<id>` com cache longo. Aceita JPG, PNG e WebP.
+- **Situação:** **Rascunho** (só administradores veem, com um aviso no topo), **Publicado** e **Agendado** (publicado
+  com data futura: aparece sozinho nesse dia). Publicar exige resumo e texto.
+- Páginas: `/blog/` (lista), `/blog/<endereço>/` (post, com dados para o Google) e `/blog/sitemap.xml`.
+  O blog é só em português.
 
 ## Área do aluno (cadastro e login)
 

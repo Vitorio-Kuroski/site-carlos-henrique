@@ -2,6 +2,7 @@
 //
 // /api/conta/*: cadastro e login de alunos (src/alunos.js, banco de dados D1).
 // /api/admin/*: painel do administrador (src/admin.js).
+// /blog/*, /imagens/*: blog com os posts e as imagens do banco (src/blog.js).
 // /api/conta/mensagens*, /api/admin/mensagens*: mensagens entre alunos e administradores (src/mensagens.js).
 // /cursos/*, /api/compras, /api/conta/cursos, /api/conta/pedidos/*, /api/conta/aulas/*, /api/pagamentos/*: cursos e pagamentos (src/cursos.js).
 //
@@ -13,12 +14,17 @@ import { rotasAdmin } from "./admin.js";
 import { rotasConta } from "./alunos.js";
 import { rotasCursos } from "./cursos.js";
 import { rotasMensagens } from "./mensagens.js";
+import { rotasBlog } from "./blog.js";
 
 const ROBOS = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|lighthouse/i;
 
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
+        if (/^\/(blog|imagens)(\/|$)/.test(url.pathname)) {
+            const resposta = await rotasBlog(request, env);
+            if (resposta) return resposta;
+        }
         if (/^\/api\/(conta|admin)\/mensagens(\/|$)/.test(url.pathname)) return rotasMensagens(request, env, ctx);
         if (/^\/(cursos|api\/compras|api\/conta\/(cursos|pedidos|aulas)|api\/pagamentos)(\/|$)/.test(url.pathname)) {
             const resposta = await rotasCursos(request, env);

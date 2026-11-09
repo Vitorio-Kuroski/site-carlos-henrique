@@ -17,11 +17,13 @@
 //   POST   /api/admin/cursos/<id>/aulas/ordem   { ids: [...] } nova ordem das aulas
 //   PUT    /api/admin/aulas/<id>             altera uma aula
 //   DELETE /api/admin/aulas/<id>             apaga uma aula (e o progresso dos alunos nela)
+//   /api/admin/posts e /api/admin/imagens   blog (src/blog.js)
 //   GET    /api/admin/vendas                 pedidos (mais recentes primeiro) e os totais
 import { alunoLogado, ehAdmin, garantirTabelas, json, listaAdmins, mandarLinkSenha } from "./alunos.js";
 import { playerDoVideo } from "./aulas.js";
 import { garantirTabelasCursos, reais } from "./cursos.js";
 import { garantirTabelasMensagens } from "./mensagens.js";
+import { rotasBlogAdmin } from "./blog.js";
 
 const COLUNAS = "id, nome, email, criado_em, ultimo_acesso";
 
@@ -83,6 +85,7 @@ export async function rotasAdmin(request, env) {
         return json({ alunos: results.map(comAdmin) });
     }
 
+    if (/^\/api\/admin\/(posts|imagens)(\/|$)/.test(url.pathname)) return rotasBlogAdmin(request, url, metodo, db);
     if (/^\/api\/admin\/(cursos\/\d+\/aulas|aulas\/\d+)/.test(url.pathname)) return rotasAulasAdmin(request, url, metodo, db);
     if (url.pathname.startsWith("/api/admin/cursos")) return rotasCursosAdmin(request, url, metodo, db);
     if (url.pathname === "/api/admin/vendas" && metodo === "GET") return vendas(db);

@@ -465,6 +465,291 @@ async function paginaVendas() {
         </section>`;
 }
 
+// ---------- Blog ----------
+
+const ICONES_EDITOR = [
+    ["negrito", "Negrito", "<b>B</b>"], ["italico", "Itálico", "<i>I</i>"], ["h2", "Título", "T"], ["h3", "Subtítulo", "t"],
+    ["lista", "Lista", "•"], ["numerada", "Lista numerada", "1."], ["link", "Link", "🔗"], ["citacao", "Citação", "❝"], ["imagem", "Imagem", "🖼"],
+];
+
+function dataPost(iso) {
+    const [a, m, d] = iso.split("-");
+    return `${d}/${m}/${a}`;
+}
+
+function seloPost(p, hoje) {
+    if (p.status === "rascunho") return '<span class="adm-selo adm-selo--cinza">Rascunho</span>';
+    if (p.data > hoje) return '<span class="adm-selo adm-selo--ouro">Agendado</span>';
+    return '<span class="adm-selo adm-selo--verde">Publicado</span>';
+}
+
+// Reduz a foto no navegador (no máximo 1600 px) antes de enviar: a página do post carrega rápido
+async function reduzirImagem(arquivo, maximo = 1600) {
+    if (!/^image\/(jpeg|png|webp|heic|heif|gif)$/i.test(arquivo.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(arquivo.name)) {
+        throw new Error("Escolha uma imagem (JPG, PNG ou WebP).");
+    }
+    let bitmap;
+    try { bitmap = await createImageBitmap(arquivo); } catch { throw new Error("Não foi possível abrir esta imagem. Tente salvar como JPG e enviar de novo."); }
+    const escala = Math.min(1, maximo / Math.max(bitmap.width, bitmap.height));
+    const tela = document.createElement("canvas");
+    tela.width = Math.round(bitmap.width * escala);
+    tela.height = Math.round(bitmap.height * escala);
+    const ctx = tela.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, tela.width, tela.height);
+    ctx.drawImage(bitmap, 0, 0, tela.width, tela.height);
+    const gerar = (tipo, qualidade) => new Promise((ok) => tela.toBlob(ok, tipo, qualidade));
+    let blob = await gerar("image/webp", 0.82);
+    if (!blob || blob.type !== "image/webp") blob = await gerar("image/jpeg", 0.85);
+    return blob;
+}
+
+async function enviarImagem(arquivo) {
+    const blob = await reduzirImagem(arquivo);
+    const r = await api("/api/admin/imagens", { method: "POST", headers: { "Content-Type": blob.type }, body: blob });
+    return r.url;
+}
+
+async function paginaBlog() {
+    titulo.textContent = "Blog";
+    const { posts, hoje } = await api("/api/admin/posts");
+    conteudo.innerHTML = `
+        <div class="adm-cabeca"><h1>Blog<small>Escreva, publique e o post aparece no site na hora.</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="/blog/" target="_blank" rel="noopener">Ver o blog</a>
+            <a class="adm-botao adm-botao--principal" href="#/blog/novo">+ Novo post</a></div></div>
+        <section class="adm-bloco">
+            ${posts.length ? `<table class="adm-tabela">
+                <thead><tr><th>Post</th><th>Data</th><th>Situação</th><th></th></tr></thead><tbody>
+                ${posts.map((p) => `<tr data-post="${p.id}" tabindex="0">
+                    <td data-rotulo="Post"><div class="adm-post">${p.capa ? `<img src="${esc(p.capa)}" alt="" loading="lazy">` : '<span class="adm-post__sem"></span>'}
+                        <span><strong>${esc(p.titulo)}</strong><small>${esc(p.resumo || "Sem resumo")}</small></span></div></td>
+                    <td data-rotulo="Data">${dataPost(p.data)}</td>
+                    <td>${seloPost(p, hoje)}</td>
+                    <td class="adm-seta" aria-hidden="true">→</td></tr>`).join("")}
+                </tbody></table>` : '<p class="adm-vazio">Nenhum post ainda. Toque em "Novo post" para escrever o primeiro.</p>'}
+        </section>`;
+    conteudo.querySelectorAll("tr[data-post]").forEach((tr) => {
+        const abrir = () => { location.hash = `#/blog/${tr.dataset.post}`; };
+        tr.addEventListener("click", abrir);
+        tr.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(); });
+    });
+}
+
+async function paginaPostForm(id, mensagem = "", tipo = "ok") {
+    const novo = id === "novo";
+    titulo.textContent = novo ? "Novo post" : "Editar post";
+    const { post, hoje } = novo ? { post: null, hoje: new Date().toISOString().slice(0, 10) } : await api(`/api/admin/posts/${id}`);
+    const p = post || { titulo: "", slug: "", resumo: "", conteudo: "", capa: "", status: "rascunho", data: hoje };
+    const publicado = p.status === "publicado";
+    conteudo.innerHTML = `
+        ${aviso(mensagem, tipo)}
+        <div class="adm-cabeca"><h1>${novo ? "Novo post" : esc(p.titulo)}<small>${novo ? "Comece como rascunho; publique quando estiver pronto." : seloPost(p, hoje)}</small></h1>
+            <div class="adm-acoes"><a class="adm-botao" href="#/blog">${ICONES.voltar}Voltar</a>
+            ${novo ? "" : `<a class="adm-botao" href="/blog/${esc(p.slug)}/" target="_blank" rel="noopener">${publicado ? "Ver no site" : "Ver como vai ficar"}</a>
+            <button type="button" class="adm-botao adm-botao--perigo" id="apagar-post">${ICONES.lixo}Apagar</button>`}</div></div>
+        <form class="adm-bloco adm-form" id="form-post" novalidate>
+            <label class="campo">Título<input name="titulo" required maxlength="160" value="${esc(p.titulo)}" placeholder="Ex.: Como funciona o imposto para quem é PAYE"></label>
+            <label class="campo">Endereço do post <span class="adm-form__dica">henriqueaccountant.com/blog/<b id="previa-slug">${esc(p.slug) || "…"}</b>/</span>
+                <input name="slug" required maxlength="80" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="${esc(p.slug)}"></label>
+            <label class="campo">Resumo <span class="adm-form__dica">aparece no Google e na lista do blog · <span id="conta-resumo">${p.resumo.length}</span>/300</span>
+                <textarea name="resumo" class="adm-form__curto" maxlength="300">${esc(p.resumo)}</textarea></label>
+            <div class="campo">Imagem de capa <span class="adm-form__dica">opcional; aparece no topo do post, na lista e quando o link é compartilhado</span>
+                <div class="adm-capa">
+                    <img id="capa-previa" alt="" ${p.capa ? `src="${esc(p.capa)}"` : "hidden"}>
+                    <div class="adm-capa__acoes">
+                        <label class="adm-botao">${p.capa ? "Trocar capa" : "Enviar capa"}<input type="file" accept="image/*" id="capa-arquivo" hidden></label>
+                        <button type="button" class="adm-botao" id="capa-remover" ${p.capa ? "" : "hidden"}>Remover</button>
+                        <span class="adm-form__dica" id="capa-status" role="status"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="campo">Texto do post
+                <div class="adm-editor">
+                    <div class="adm-editor__barra" role="toolbar" aria-label="Formatação">
+                        ${ICONES_EDITOR.map(([acao, rotulo, icone]) => `<button type="button" data-acao="${acao}" title="${rotulo}" aria-label="${rotulo}">${icone}</button>`).join("")}
+                        <span class="adm-editor__abas" role="tablist">
+                            <button type="button" role="tab" aria-selected="true" data-aba="escrever">Escrever</button>
+                            <button type="button" role="tab" aria-selected="false" data-aba="previa">Prévia</button>
+                        </span>
+                    </div>
+                    <textarea name="conteudo" id="editor" maxlength="100000" placeholder="Escreva aqui. Use os botões acima para títulos, listas, links e imagens.">${esc(p.conteudo)}</textarea>
+                    <div class="adm-editor__previa post__texto" id="previa" hidden></div>
+                    <input type="file" accept="image/*" id="imagem-arquivo" hidden>
+                </div>
+            </div>
+            <label class="campo adm-form__data">Data do post <span class="adm-form__dica">se for uma data futura, o post só aparece no site nesse dia</span>
+                <input type="date" name="data" required value="${esc(p.data)}"></label>
+            <p class="conta__erro" id="erro-post" role="alert" hidden></p>
+            <div class="adm-form__acoes">
+                ${publicado
+                    ? `<button type="submit" class="adm-botao adm-botao--principal" data-status="publicado">Salvar alterações</button>
+                       <button type="submit" class="adm-botao" data-status="rascunho">Tirar do ar (voltar para rascunho)</button>`
+                    : `<button type="submit" class="adm-botao adm-botao--principal" data-status="publicado">Publicar</button>
+                       <button type="submit" class="adm-botao" data-status="rascunho">Salvar rascunho</button>`}
+            </div>
+        </form>`;
+
+    const form = document.getElementById("form-post");
+    const editor = document.getElementById("editor");
+    const previa = document.getElementById("previa");
+    let capa = p.capa;
+    let sujo = false;
+    form.addEventListener("input", () => { sujo = true; });
+    formularioSujo = () => sujo;
+
+    // Endereço gerado pelo título enquanto o post é novo
+    let slugManual = !novo;
+    form.slug.addEventListener("input", () => { slugManual = true; document.getElementById("previa-slug").textContent = form.slug.value || "…"; });
+    form.titulo.addEventListener("input", () => {
+        if (slugManual) return;
+        form.slug.value = slugDe(form.titulo.value);
+        document.getElementById("previa-slug").textContent = form.slug.value || "…";
+    });
+    form.resumo.addEventListener("input", () => { document.getElementById("conta-resumo").textContent = form.resumo.value.length; });
+
+    // Capa
+    const capaStatus = document.getElementById("capa-status");
+    document.getElementById("capa-arquivo").addEventListener("change", async (e) => {
+        const arquivo = e.target.files[0];
+        e.target.value = "";
+        if (!arquivo) return;
+        capaStatus.textContent = "Enviando…";
+        try {
+            capa = await enviarImagem(arquivo);
+            const img = document.getElementById("capa-previa");
+            img.src = capa;
+            img.hidden = false;
+            document.getElementById("capa-remover").hidden = false;
+            capaStatus.textContent = "Capa enviada. Lembre de salvar o post.";
+            sujo = true;
+        } catch (falha) {
+            capaStatus.textContent = falha.message;
+        }
+    });
+    document.getElementById("capa-remover").addEventListener("click", () => {
+        capa = "";
+        document.getElementById("capa-previa").hidden = true;
+        document.getElementById("capa-remover").hidden = true;
+        capaStatus.textContent = "Capa removida. Lembre de salvar o post.";
+        sujo = true;
+    });
+
+    // Barra de formatação: escreve as marcas no texto, em volta do que estiver selecionado
+    const inserir = (antes, depois = "", exemplo = "") => {
+        const { selectionStart: ini, selectionEnd: fim, value } = editor;
+        const sel = value.slice(ini, fim) || exemplo;
+        editor.setRangeText(antes + sel + depois, ini, fim, "end");
+        if (!value.slice(ini, fim) && exemplo) editor.setSelectionRange(ini + antes.length, ini + antes.length + exemplo.length);
+        editor.focus();
+        sujo = true;
+    };
+    // Marca o começo de cada linha selecionada (ou da linha do cursor)
+    const inicioDeLinha = (marca, exemplo) => {
+        const { selectionStart: ini, selectionEnd: fim, value } = editor;
+        const comeco = value.lastIndexOf("\n", ini - 1) + 1;
+        const quebra = value.indexOf("\n", fim);
+        const final = quebra === -1 ? value.length : quebra;
+        const trecho = value.slice(comeco, final) || exemplo;
+        const linhas = trecho.split("\n").map((l, i) => (typeof marca === "function" ? marca(i) : marca) + l.replace(/^(#{1,4}\s+|[-*]\s+|\d+[.)]\s+|>\s?)/, ""));
+        editor.setRangeText(linhas.join("\n"), comeco, final, "end");
+        editor.focus();
+        sujo = true;
+    };
+    const acoes = {
+        negrito: () => inserir("**", "**", "texto em negrito"),
+        italico: () => inserir("*", "*", "texto em itálico"),
+        h2: () => inicioDeLinha("## ", "Título da seção"),
+        h3: () => inicioDeLinha("### ", "Subtítulo"),
+        lista: () => inicioDeLinha("- ", "Item da lista"),
+        numerada: () => inicioDeLinha((i) => `${i + 1}. `, "Primeiro item"),
+        citacao: () => inicioDeLinha("> ", "Citação"),
+        link: () => {
+            const url = prompt("Endereço do link (comece com https://):", "https://");
+            if (!url || url === "https://") return;
+            if (!/^(https?:\/\/|mailto:|\/)/i.test(url)) { alert("Use um endereço que comece com https://"); return; }
+            inserir("[", `](${url.trim()})`, "texto do link");
+        },
+        imagem: () => document.getElementById("imagem-arquivo").click(),
+    };
+    form.querySelectorAll("[data-acao]").forEach((b) => b.addEventListener("click", () => acoes[b.dataset.acao]()));
+    document.getElementById("imagem-arquivo").addEventListener("change", async (e) => {
+        const arquivo = e.target.files[0];
+        e.target.value = "";
+        if (!arquivo) return;
+        const descricao = (prompt("Descreva a imagem em poucas palavras (ajuda no Google e para quem usa leitor de tela):", "") || "").replace(/[\[\]]/g, "");
+        const marcador = `![Enviando imagem…]()`;
+        editor.setSelectionRange(editor.selectionEnd, editor.selectionEnd); // entra depois do que estiver selecionado
+        inserir("\n\n" + marcador + "\n\n");
+        try {
+            const url = await enviarImagem(arquivo);
+            editor.value = editor.value.replace(marcador, `![${descricao}](${url})`);
+        } catch (falha) {
+            editor.value = editor.value.replace(marcador, "");
+            alert(falha.message);
+        }
+    });
+    // Ctrl+B / Ctrl+I
+    editor.addEventListener("keydown", (e) => {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        if (e.key.toLowerCase() === "b") { e.preventDefault(); acoes.negrito(); }
+        if (e.key.toLowerCase() === "i") { e.preventDefault(); acoes.italico(); }
+    });
+
+    // Abas Escrever / Prévia
+    form.querySelectorAll("[data-aba]").forEach((aba) => aba.addEventListener("click", () => {
+        const verPrevia = aba.dataset.aba === "previa";
+        form.querySelectorAll("[data-aba]").forEach((a) => a.setAttribute("aria-selected", String(a === aba)));
+        if (verPrevia) previa.innerHTML = window.markdownParaHtml ? window.markdownParaHtml(editor.value) || "<p><em>Nada escrito ainda.</em></p>" : "<p>Prévia indisponível.</p>";
+        previa.hidden = !verPrevia;
+        editor.hidden = verPrevia;
+        form.querySelectorAll("[data-acao]").forEach((b) => { b.disabled = verPrevia; });
+    }));
+
+    // Salvar / publicar
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const status = e.submitter?.dataset.status || p.status;
+        const erro = document.getElementById("erro-post");
+        erro.hidden = true;
+        const botoes = form.querySelectorAll("button[type=submit]");
+        botoes.forEach((b) => { b.disabled = true; });
+        try {
+            const corpo = {
+                titulo: form.titulo.value, slug: form.slug.value, resumo: form.resumo.value, conteudo: editor.value,
+                capa, status, data: form.data.value,
+            };
+            const r = await api(novo ? "/api/admin/posts" : `/api/admin/posts/${id}`, {
+                method: novo ? "POST" : "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
+            });
+            sujo = false;
+            const msg = status === "publicado"
+                ? (corpo.data > hoje ? `Post agendado para ${dataPost(corpo.data)}.` : "Post publicado! Já está no site.")
+                : "Rascunho salvo.";
+            if (novo) {
+                avisoPendente = msg;
+                location.hash = `#/blog/${r.id}`;
+            } else {
+                await paginaPostForm(id, msg, "ok");
+            }
+        } catch (falha) {
+            erro.textContent = falha.message;
+            erro.hidden = false;
+            botoes.forEach((b) => { b.disabled = false; });
+        }
+    });
+
+    document.getElementById("apagar-post")?.addEventListener("click", async () => {
+        if (!confirm(`Apagar o post "${p.titulo}"? Não dá para desfazer.`)) return;
+        try {
+            await api(`/api/admin/posts/${id}`, { method: "DELETE" });
+            sujo = false;
+            location.hash = "#/blog";
+        } catch (falha) {
+            alert(falha.message);
+        }
+    });
+}
+
 // ---------- Mensagens ----------
 
 // Texto já escapado, com os endereços https:// clicáveis
@@ -580,15 +865,26 @@ function atualizarContador(novos) {
     contador.hidden = !novos;
 }
 
+let formularioSujo = null; // formulário com mudanças não salvas: pergunta antes de sair
+let avisoPendente = "";   // mensagem para mostrar na próxima página (ex.: "Post publicado!")
+let hashAtual = location.hash;
+
 async function mostrar() {
+    if (formularioSujo?.() && location.hash !== hashAtual && !confirm("Sair sem salvar? As mudanças vão se perder.")) {
+        history.replaceState(null, "", hashAtual || "#/");
+        return;
+    }
+    formularioSujo = null;
+    hashAtual = location.hash;
     const caminho = location.hash.replace(/^#/, "") || "/";
+    const post = /^\/blog\/(novo|\d+)$/.exec(caminho);
     const aluno = /^\/alunos\/(\d+)$/.exec(caminho);
     const curso = /^\/cursos\/(novo|\d+)$/.exec(caminho);
     const aula = /^\/cursos\/(\d+)\/aulas\/(nova|\d+)$/.exec(caminho);
     const conversa = /^\/mensagens\/(\d+)$/.exec(caminho);
     pararConversa?.();
     pararConversa = null;
-    const pagina = caminho.startsWith("/mensagens") ? "mensagens" : aluno || caminho.startsWith("/alunos") ? "alunos"
+    const pagina = caminho.startsWith("/blog") ? "blog" : caminho.startsWith("/mensagens") ? "mensagens" : aluno || caminho.startsWith("/alunos") ? "alunos"
         : caminho.startsWith("/cursos") ? "cursos" : caminho.startsWith("/vendas") ? "vendas" : "painel";
     document.querySelectorAll(".adm-menu__nav a[data-pagina]").forEach((a) => a.classList.toggle("ativo", a.dataset.pagina === pagina));
     abrirMenu(false);
@@ -600,6 +896,8 @@ async function mostrar() {
         else if (caminho === "/cursos") await paginaCursos();
         else if (caminho === "/vendas") await paginaVendas();
         else if (conversa) await paginaConversa(conversa[1]);
+        else if (post) { const msg = avisoPendente; avisoPendente = ""; await paginaPostForm(post[1], msg, "ok"); }
+        else if (caminho === "/blog") await paginaBlog();
         else if (caminho === "/mensagens") await paginaMensagens();
         else await paginaPainel();
         scrollTo(0, 0);
@@ -639,6 +937,7 @@ document.getElementById("sair").addEventListener("click", async () => {
         return;
     }
     addEventListener("hashchange", mostrar);
+    addEventListener("beforeunload", (e) => { if (formularioSujo?.()) { e.preventDefault(); e.returnValue = ""; } });
     await mostrar();
     // Aviso de mensagens novas no menu e no título da aba, conferido a cada 30 segundos
     atualizarMensagens();
