@@ -118,8 +118,9 @@ export function duracao(minutos) {
 
 const ICONE_CONTA = '<svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
 
-export function pagina(request, { titulo, descricao, conteudo, status = 200, indexar = true }) {
+export function pagina(request, { titulo, descricao, conteudo, status = 200, indexar = true, tipo = "website", imagem = "", extraHead = "", script = true }) {
     const url = new URL(request.url);
+    const ogImagem = imagem ? new URL(imagem, url.origin).toString() : `${url.origin}/og-imagem.png`;
     const html = `<!DOCTYPE html>
 <html lang="pt-BR" data-idioma="pt">
 <head>
@@ -130,12 +131,14 @@ export function pagina(request, { titulo, descricao, conteudo, status = 200, ind
     <title>${esc(titulo)} | Carlos Henrique</title>
     <meta name="theme-color" content="#0F3D2E">
     <link rel="canonical" href="${url.origin}${url.pathname}">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="${tipo}">
     <meta property="og:locale" content="pt_BR">
     <meta property="og:site_name" content="Carlos Henrique">
     <meta property="og:title" content="${esc(titulo)}">
     <meta property="og:description" content="${esc(descricao)}">
-    <meta property="og:image" content="${url.origin}/og-imagem.png">
+    <meta property="og:url" content="${url.origin}${url.pathname}">
+    <meta property="og:image" content="${esc(ogImagem)}">
+    <meta name="twitter:card" content="summary_large_image">${extraHead}
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -166,16 +169,17 @@ ${conteudo}
             <p class="rodape__frase">Dinheiro, impostos e carreira na Irlanda, <em>em português.</em></p>
             <div class="rodape__linha">
                 <p><strong>Carlos Henrique</strong> · Part-Qualified Accountant · Dublin</p>
-                <nav aria-label="Links">
-                    <a href="/blog/">Blog</a>
-                    <a href="/conta/">Área do aluno</a>
-                    <a href="/#parcerias">E-mail</a>
+                <nav aria-label="Redes sociais">
+                    <a class="rede" href="https://www.instagram.com/henrique.accountant/" target="_blank" rel="noopener"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".9" class="icone__ponto"/></svg>Instagram</a>
+                    <a class="rede" href="https://www.linkedin.com/in/carlos-henrique-de-souza-ba167914a" target="_blank" rel="noopener"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10.5V16M8 7.6v.1M11.5 16v-5.5M11.5 13c0-1.7 1-2.6 2.3-2.6s2.2.9 2.2 2.6V16"/></svg>LinkedIn</a>
+                    <a class="rede" href="/blog/"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 15.5h6M9 9h2"/></svg>Blog</a>
+                    <a class="rede" href="/#parcerias"><svg class="icone" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></svg>E-mail</a>
                 </nav>
             </div>
             <p class="rodape__aviso">O conteúdo é educativo e não substitui uma orientação individual.</p>
         </div>
     </footer>
-    <script src="/cursos/curso.js"></script>
+    ${script ? '<script src="/cursos/curso.js"></script>' : ""}
 </body>
 </html>`;
     return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });

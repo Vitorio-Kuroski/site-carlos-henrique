@@ -361,3 +361,12 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .chat__form textarea:focus { outline: 2px solid var(--ouro); outline-offset: 1px; border-color: transparent; }
 .chat__form .botao { justify-self: end; }
 .chat__form .botao:disabled { opacity: .6; cursor: wait; }
+
+/* Blog: imagens dentro do post e aviso de rascunho (só administradores veem) */
+.post__texto figure { margin-top: 1.8rem; }
+.post__texto figure img { width: 100%; }
+.post__texto code { padding: .1rem .35rem; border-radius: 6px; background: var(--papel); font-size: .9em; }
+.post__texto hr { border: 0; border-top: 1px solid var(--linha); margin: 2.4rem 0; }
+.post__rascunho { margin-bottom: 1.4rem; padding: .8rem 1rem; border-radius: 12px; background: #F5ECD3; color: var(--ouro-texto); font-size: .9rem; font-weight: 500; }
+.post__rascunho a { color: inherit; }
+.post__cabeca + .caixa { max-width: 780px; } /* texto alinhado com o título */

@@ -159,3 +159,28 @@
 .adm-chat__form .adm-botao { justify-self: end; }
 .adm-chat__nota { font-size: .82rem; color: var(--suave); min-height: 1em; }
 .adm-chat__nota:empty { display: none; }
+
+/* Blog */
+.adm-post { display: flex; align-items: center; gap: .8rem; }
+.adm-post img, .adm-post__sem { width: 64px; height: 44px; flex-shrink: 0; border-radius: 8px; object-fit: cover; background: #ECEAE3; }
+.adm-post strong { display: block; font-weight: 500; }
+.adm-post small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; color: var(--suave); font-size: .82rem; }
+.adm-form .campo textarea.adm-form__curto { min-height: 72px; }
+.adm-form__data input { max-width: 220px; }
+.adm-capa { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: .4rem; }
+.adm-capa img { width: 220px; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; border: 1px solid var(--linha); }
+.adm-capa__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.adm-capa label.adm-botao { cursor: pointer; }
+.adm-editor { margin-top: .4rem; border: 1px solid var(--linha); border-radius: 14px; overflow: hidden; background: var(--fundo); }
+.adm-editor:focus-within { outline: 2px solid var(--ouro); outline-offset: 1px; }
+.adm-editor__barra { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; padding: .45rem; border-bottom: 1px solid var(--linha); background: #F7F4EC; }
+.adm-editor__barra button { min-width: 36px; height: 34px; padding: 0 .55rem; border: 1px solid transparent; border-radius: 8px; background: none;
+  font: 500 .92rem var(--corpo); color: var(--texto); cursor: pointer; }
+.adm-editor__barra button:hover:not(:disabled) { background: var(--superficie); border-color: var(--linha); }
+.adm-editor__barra button:disabled { opacity: .35; cursor: default; }
+.adm-editor__abas { margin-left: auto; display: inline-flex; gap: .2rem; padding: .15rem; border-radius: 10px; background: #ECE6D6; }
+.adm-editor__abas button[aria-selected="true"] { background: var(--superficie); border-color: var(--linha); }
+.adm-form .adm-editor textarea { display: block; width: 100%; min-height: 420px; border: 0; border-radius: 0; outline: none; padding: 1rem 1.1rem;
+  font: 400 1rem/1.7 var(--corpo); background: var(--fundo); resize: vertical; }
+.adm-form .adm-editor textarea:focus { outline: none; }
+.adm-editor__previa { min-height: 420px; max-width: none; padding: 1.2rem 1.4rem 2rem; font-size: 1.02rem; background: var(--superficie); }
