@@ -2,7 +2,7 @@
 // Publica a pasta public/ como site estático; o src/worker.js roda na página inicial (escolhe o idioma)
 // e nas rotas /api/ (cadastro e login de alunos).
 {
-  "name": "carlos-henrique",
+  "name": "site-carlos-henrique",
   "main": "src/worker.js",
   "compatibility_date": "2026-10-01",
   "assets": {
@@ -14,6 +14,6 @@
   // Banco de dados dos alunos. Sem "database_id": o Cloudflare cria o banco sozinho na primeira publicação.
   // As tabelas são criadas pelo próprio Worker na primeira requisição (src/alunos.js).
   "d1_databases": [{ "binding": "DB", "database_name": "carlos-henrique-alunos" }],
-  // Endereço de teste carlos-henrique.<conta>.workers.dev
+  // Endereço de teste site-carlos-henrique.<conta>.workers.dev
   "workers_dev": true
 }
