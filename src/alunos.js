@@ -5,18 +5,25 @@
 //   POST /api/conta/entrar    { email, senha }        entra
 //   POST /api/conta/sair                              sai (apaga a sessão)
 //   GET  /api/conta/eu                                dados de quem está logado (e se é administrador), ou 401
+//   POST /api/conta/esqueci   { email }               manda o link para criar uma senha nova
+//   POST /api/conta/nova-senha { token, senha }       troca a senha pelo link e já entra
 //
 // Administradores: os e-mails do segredo ADMIN_EMAILS (painel do Cloudflare, separados por vírgula).
 // Ficam fora do código porque o repositório é público.
 // Senhas: PBKDF2-SHA256 com sal aleatório; nunca são guardadas em texto.
 // Sessão: token aleatório num cookie HttpOnly; no banco fica só o hash do token.
 // Tentativas de login: 5 erros em 15 minutos bloqueiam aquele e-mail por 15 minutos.
+// Esqueci minha senha: link válido por 1 hora e uma vez só; no máximo 3 pedidos por e-mail por hora.
+// O e-mail sai pelo Resend (segredo RESEND_API_KEY); sem a chave, o link só aparece no log do Worker.
 
 const ITERACOES = 100000; // máximo aceito pelo PBKDF2 do Cloudflare Workers
 const SESSAO_DIAS = 30;
 const LIMITE_ERROS = 5;
 const JANELA_ERROS = 15 * 60; // segundos
 const COOKIE = "sessao";
+const LINK_VALIDADE = 60 * 60; // segundos
+const LIMITE_PEDIDOS = 3; // pedidos de senha nova por e-mail por hora
+const REMETENTE_PADRAO = "Carlos Henrique <nao-responda@henriqueaccountant.com>";
 
 // Cria as tabelas na primeira requisição (não precisa rodar migração à parte)
 const TABELAS = [
@@ -39,6 +46,13 @@ const TABELAS = [
         momento INTEGER NOT NULL
     )`,
     `CREATE INDEX IF NOT EXISTS tentativas_email ON tentativas_login(email, momento)`,
+    `CREATE TABLE IF NOT EXISTS redefinicoes (
+        token_hash TEXT PRIMARY KEY,
+        aluno_id INTEGER NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
+        criado_em INTEGER NOT NULL,
+        expira_em INTEGER NOT NULL
+    )`,
+    `CREATE INDEX IF NOT EXISTS redefinicoes_aluno ON redefinicoes(aluno_id, criado_em)`,
 ];
 let tabelasProntas = false;
 
@@ -182,7 +196,98 @@ async function sair(request, env) {
     return json({ ok: true }, 200, { "Set-Cookie": cookieSessao("", 0) });
 }
 
-export async function rotasConta(request, env) {
+function esc(texto) {
+    return String(texto).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+async function enviarEmailSenha(env, aluno, link) {
+    if (!env.RESEND_API_KEY) {
+        console.log(`[esqueci minha senha] RESEND_API_KEY não configurada. Link para ${aluno.email}: ${link}`);
+        return;
+    }
+    const primeiro = aluno.nome.split(" ")[0];
+    const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.6;color:#18261F;max-width:520px">
+<p>Olá, ${esc(primeiro)}!</p>
+<p>Recebemos um pedido para criar uma senha nova na sua conta do site do Carlos Henrique.</p>
+<p><a href="${esc(link)}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#0F3D2E;color:#F6F2E9;text-decoration:none">Criar senha nova</a></p>
+<p>O link vale por 1 hora e só pode ser usado uma vez. Se não foi você que pediu, é só ignorar este e-mail: a sua senha continua a mesma.</p>
+<p style="color:#56645C;font-size:13px">Se o botão não abrir, copie este endereço no navegador:<br>${esc(link)}</p>
+</div>`;
+    const texto = `Olá, ${primeiro}!\n\nRecebemos um pedido para criar uma senha nova na sua conta do site do Carlos Henrique.\n\n` +
+        `Crie a senha nova por este link (vale por 1 hora e uma vez só):\n${link}\n\n` +
+        "Se não foi você que pediu, é só ignorar este e-mail: a sua senha continua a mesma.";
+    const resposta = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+            from: env.EMAIL_REMETENTE || REMETENTE_PADRAO,
+            to: [aluno.email],
+            subject: "Crie uma senha nova",
+            html,
+            text: texto,
+        }),
+    });
+    if (!resposta.ok) console.error("Falha ao enviar o e-mail de senha nova:", resposta.status, await resposta.text());
+}
+
+async function esqueci(request, env, ctx) {
+    const dados = await lerDados(request);
+    if (!dados) return json({ erro: "Dados inválidos." }, 400);
+    const email = String(dados.email || "").trim().toLowerCase();
+    if (!emailValido(email)) return json({ erro: "Informe um e-mail válido." }, 422);
+    // A resposta é sempre a mesma, para não revelar quem tem conta
+    const resposta = json({ ok: true });
+    const db = env.DB;
+    const aluno = await db.prepare("SELECT id, nome, email FROM alunos WHERE email = ?").bind(email).first();
+    if (!aluno) return resposta;
+
+    const { pedidos } = await db.prepare("SELECT COUNT(*) AS pedidos FROM redefinicoes WHERE aluno_id = ? AND criado_em > ?")
+        .bind(aluno.id, agora() - 3600).first();
+    if (pedidos >= LIMITE_PEDIDOS) return resposta;
+
+    const token = paraHex(crypto.getRandomValues(new Uint8Array(32)));
+    await db.batch([
+        db.prepare("DELETE FROM redefinicoes WHERE expira_em < ?").bind(agora() - 3600),
+        db.prepare("INSERT INTO redefinicoes (token_hash, aluno_id, criado_em, expira_em) VALUES (?, ?, ?, ?)")
+            .bind(await sha256(token), aluno.id, agora(), agora() + LINK_VALIDADE),
+    ]);
+    const link = new URL(`/conta/nova-senha/?token=${token}`, request.url).toString();
+    // Envia depois de responder: a resposta não demora mais para quem tem conta
+    const envio = enviarEmailSenha(env, aluno, link).catch((erro) => console.error("Falha ao enviar o e-mail:", erro));
+    if (ctx?.waitUntil) ctx.waitUntil(envio);
+    else await envio;
+    return resposta;
+}
+
+async function novaSenha(request, env) {
+    const dados = await lerDados(request);
+    if (!dados) return json({ erro: "Dados inválidos." }, 400);
+    const token = String(dados.token || "");
+    const senha = String(dados.senha || "");
+    const invalido = json({ erro: "Este link não vale mais. Peça um novo em \"Esqueci minha senha\"." }, 410);
+    if (!/^[a-f0-9]{64}$/.test(token)) return invalido;
+    if (senha.length < 8 || senha.length > 200) return json({ erro: "A senha precisa ter pelo menos 8 caracteres." }, 422);
+
+    const db = env.DB;
+    const tokenHash = await sha256(token);
+    const pedido = await db.prepare(
+        `SELECT r.aluno_id, a.nome, a.email FROM redefinicoes r JOIN alunos a ON a.id = r.aluno_id
+         WHERE r.token_hash = ? AND r.expira_em > ?`).bind(tokenHash, agora()).first();
+    if (!pedido) return invalido;
+
+    const sal = paraHex(crypto.getRandomValues(new Uint8Array(16)));
+    const hash = await hashSenha(senha, sal);
+    // Troca a senha, invalida todos os links e sai de todas as sessões abertas (por exemplo, num celular perdido)
+    await db.batch([
+        db.prepare("UPDATE alunos SET senha_hash = ?, senha_sal = ? WHERE id = ?").bind(hash, sal, pedido.aluno_id),
+        db.prepare("DELETE FROM redefinicoes WHERE aluno_id = ?").bind(pedido.aluno_id),
+        db.prepare("DELETE FROM sessoes WHERE aluno_id = ?").bind(pedido.aluno_id),
+        db.prepare("DELETE FROM tentativas_login WHERE email = ?").bind(pedido.email),
+    ]);
+    return json({ nome: pedido.nome, email: pedido.email }, 200, { "Set-Cookie": await criarSessao(db, pedido.aluno_id) });
+}
+
+export async function rotasConta(request, env, ctx) {
     const { pathname } = new URL(request.url);
     const metodo = request.method;
     if (metodo === "POST") {
@@ -195,6 +300,8 @@ export async function rotasConta(request, env) {
     if (pathname === "/api/conta/cadastro" && metodo === "POST") return cadastro(request, env);
     if (pathname === "/api/conta/entrar" && metodo === "POST") return entrar(request, env);
     if (pathname === "/api/conta/sair" && metodo === "POST") return sair(request, env);
+    if (pathname === "/api/conta/esqueci" && metodo === "POST") return esqueci(request, env, ctx);
+    if (pathname === "/api/conta/nova-senha" && metodo === "POST") return novaSenha(request, env);
     if (pathname === "/api/conta/eu" && metodo === "GET") {
         const aluno = await alunoLogado(request, env);
         return aluno ? json({ nome: aluno.nome, email: aluno.email, admin: ehAdmin(env, aluno.email) })

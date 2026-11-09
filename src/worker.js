@@ -13,9 +13,9 @@ import { rotasConta } from "./alunos.js";
 const ROBOS = /bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|lighthouse/i;
 
 export default {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
         const url = new URL(request.url);
-        if (url.pathname.startsWith("/api/conta/")) return rotasConta(request, env);
+        if (url.pathname.startsWith("/api/conta/")) return rotasConta(request, env, ctx);
         if (url.pathname.startsWith("/api/admin/")) return rotasAdmin(request, env);
         if (url.pathname === "/" && !ROBOS.test(request.headers.get("User-Agent") || "")) {
             const cookie = /(?:^|;\s*)idioma=(pt|en)/.exec(request.headers.get("Cookie") || "")?.[1];

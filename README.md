@@ -57,7 +57,14 @@ Etapa 1 da plataforma de cursos: alunos criam conta e entram no site.
   (Workers & Pages > carlos-henrique > Settings > Variables and Secrets, tipo **Secret**), com os e-mails separados
   por vírgula; fica fora do código porque o repositório é público. Para tirar alguém, apague o e-mail da lista.
   Administrador não pode ser apagado pelo painel. No PC, coloque `ADMIN_EMAILS=...` no arquivo `.dev.vars`.
-- Ainda não tem "esqueci minha senha": precisa de um serviço que mande e-mail para os alunos (próxima etapa).
+- **Esqueci minha senha:** `/conta/esqueci/` manda um link (vale 1 hora e uma vez só; até 3 pedidos por e-mail por hora)
+  para `/conta/nova-senha/`. Trocar a senha encerra todas as sessões abertas. O e-mail sai pelo **Resend**:
+  1. Crie a conta em resend.com, adicione o domínio `henriqueaccountant.com` em **Domains** e copie os registros DNS
+     que ele mostrar para o DNS do domínio no Cloudflare (ou use a opção automática do Cloudflare, se aparecer).
+  2. Em **API Keys**, crie uma chave só com permissão de envio.
+  3. No Cloudflare, crie o segredo `RESEND_API_KEY` (tipo **Secret**) com essa chave.
+  O remetente é `Carlos Henrique <nao-responda@henriqueaccountant.com>`; para trocar, crie a variável
+  `EMAIL_REMETENTE`. Sem a chave, o link aparece só no log do Worker (útil para testar no PC).
 
 ## O que trocar
 

@@ -289,3 +289,9 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 @media (max-width: 600px) {
   .rodape nav { display: grid; grid-template-columns: repeat(2, max-content); gap: .9rem 2rem; }
 }
+
+/* Esqueci minha senha */
+.conta__esqueci { margin-top: -.4rem; font-size: .88rem; text-align: right; }
+.conta__esqueci a { color: var(--ouro-texto); }
+.conta__ok { margin-top: 1.6rem; padding: 1.1rem 1.2rem; border-radius: 14px; background: #EEF3EC; color: #23452F; font-size: .95rem; }
+.conta__ok p + p { margin-top: .5rem; }
