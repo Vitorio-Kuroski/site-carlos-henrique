@@ -376,6 +376,20 @@ h1 em, h2 em, .rodape__frase em { font-style: italic; color: var(--ouro-texto); 
 .post__rascunho a { color: inherit; }
 .post__cabeca + .caixa { max-width: 780px; } /* texto alinhado com o título */
 
+/* Compartilhar o post */
+.compartilhar { margin-top: 1.6rem; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.compartilhar__rotulo { margin-right: .3rem; font-size: .85rem; font-weight: 500; color: var(--suave); }
+.compartilhar__botao { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--linha); color: var(--texto); transition: background .2s, border-color .2s, color .2s; }
+.compartilhar__botao svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.compartilhar__botao .cheio { fill: currentColor; stroke: none; }
+.compartilhar__botao:hover, .compartilhar__botao:focus-visible { border-color: var(--ouro); background: #F5ECD3; color: var(--ouro-texto); }
+.post__texto:has(+ .post__fim) { padding-bottom: 48px; }
+.post__fim { max-width: 720px; margin-bottom: 96px; padding-top: 28px; border-top: 1px solid var(--linha); }
+.post__fim p { font-family: var(--titulo); font-size: 1.3rem; }
+.compartilhar--fim { margin-top: 1rem; }
+.compartilhar--fim .compartilhar__rotulo { display: none; }
+.compartilhar--fim .compartilhar__botao { width: 46px; height: 46px; }
+
 /* Formulário de pedido de declaração */
 .formulario__cartao { max-width: 720px; margin: 0 auto; padding: clamp(1.4rem, 4vw, 2.6rem); border-radius: 24px; background: var(--superficie);
   border: 1px solid var(--linha); display: grid; gap: 1.6rem; }

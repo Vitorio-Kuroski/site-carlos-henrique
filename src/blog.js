@@ -151,6 +151,31 @@ async function paginaLista(request, env) {
     });
 }
 
+// Botões de compartilhar: só links (sem script e sem rastreador de terceiros)
+const ICONES_REDE = {
+    whatsapp: '<path d="M4 20l1.2-3.6A8 8 0 1 1 8 19.2z"/><path d="M9 9.2c.3 2.6 2.2 4.6 4.8 5.2l1-1.2 1.8.8-.3 1.5c-3.8.2-7.3-3.2-7.3-7l1.5-.4.8 1.8z" class="cheio"/>',
+    linkedin: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 10.5V16M8 7.6v.1M11.5 16v-5.5M11.5 13c0-1.6 1-2.6 2.3-2.6s2.2.9 2.2 2.6V16"/>',
+    facebook: '<path d="M14.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.4H9.2v3h2.5V21"/>',
+    x: '<path d="M4 4l16 16M20 4L4 20" transform="scale(.82) translate(2.6 2.6)"/>',
+    email: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/>',
+};
+
+function compartilhar(endereco, titulo, classe = "") {
+    const u = encodeURIComponent(endereco);
+    const t = encodeURIComponent(titulo);
+    const redes = [
+        ["whatsapp", "WhatsApp", `https://wa.me/?text=${t}%20${u}`],
+        ["linkedin", "LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${u}`],
+        ["facebook", "Facebook", `https://www.facebook.com/sharer/sharer.php?u=${u}`],
+        ["x", "X (Twitter)", `https://twitter.com/intent/tweet?url=${u}&text=${t}`],
+        ["email", "e-mail", `mailto:?subject=${t}&body=${t}%0A%0A${u}`],
+    ];
+    return `<div class="compartilhar ${classe}">
+                    <span class="compartilhar__rotulo">Compartilhar</span>
+                    ${redes.map(([k, nome, link]) => `<a class="compartilhar__botao compartilhar__botao--${k}" href="${esc(link)}"${k === "email" ? "" : ' target="_blank" rel="noopener"'} aria-label="Compartilhar no ${nome}" title="${nome}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONES_REDE[k]}</svg></a>`).join("")}
+                </div>`;
+}
+
 async function paginaPost(request, env, slug) {
     const post = await env.DB.prepare("SELECT * FROM posts WHERE slug = ?").bind(slug).first();
     const visivel = post && post.status === "publicado" && post.data <= hoje();
@@ -200,12 +225,14 @@ async function paginaPost(request, env, slug) {
                 <p class="post-cartao__data"><time datetime="${post.data}">${dataExtenso(post.data)}</time> · ${minutosDeLeitura(post.conteudo)} min de leitura</p>
                 <h1>${esc(post.titulo)}</h1>
                 ${post.resumo ? `<p class="hero__lead">${esc(post.resumo)}</p>` : ""}
+                ${visivel ? compartilhar(endereco, post.titulo) : ""}
                 ${post.capa ? `<img class="post__capa" src="${esc(post.capa)}" alt="">` : ""}
             </header>
             <div class="caixa">
                 <div class="post__texto">
 ${markdownParaHtml(post.conteudo)}
                 </div>
+                ${visivel ? `<div class="post__fim"><p>Gostou? Mande para quem também vai precisar.</p>${compartilhar(endereco, post.titulo, "compartilhar--fim")}</div>` : ""}
             </div>
         </article>
         <section class="secao secao--papel">
